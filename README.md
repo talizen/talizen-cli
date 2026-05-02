@@ -140,7 +140,7 @@ git push origin v0.1.0
 If this repository is mirrored to GitHub with a different remote name, push the tag to that remote:
 
 ```bash
-git remote add github git@github.com:bysir/talizen-cli.git
+git remote add github git@github.com:talizen/talizen-cli.git
 git push github main
 git push github v0.1.0
 ```
