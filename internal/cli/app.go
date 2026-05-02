@@ -15,6 +15,8 @@ import (
 
 const defaultHost = "https://talizen.com"
 
+var version = "dev"
+
 func defaultAPIHost() string {
 	if v := strings.TrimSpace(os.Getenv("TALIZEN_API_HOST")); v != "" {
 		return v
@@ -58,6 +60,9 @@ func Run(ctx context.Context, args []string) error {
 		return runPull(ctx, args[1:])
 	case "sync":
 		return runSync(ctx, args[1:])
+	case "version":
+		fmt.Println(version)
+		return nil
 	case "help", "-h", "--help":
 		printUsage()
 		return nil
@@ -73,7 +78,8 @@ Usage:
   talizen login [--api=https://talizen.com] [--web=https://talizen.com]
   talizen projects
   talizen pull --site_id=<project_id>/<site_id> --dir=./mysite
-  talizen sync --site_id=<project_id>/<site_id> --dir=./mysite`)
+  talizen sync --site_id=<project_id>/<site_id> --dir=./mysite
+  talizen version`)
 }
 
 func clientFromConfig(apiHost string) (*talizen.Client, Config, error) {

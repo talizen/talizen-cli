@@ -117,4 +117,36 @@ talizen login [--api=https://talizen.com] [--web=https://talizen.com]
 talizen projects [--api=https://talizen.com]
 talizen pull --site_id=<project_id>/<site_id> --dir=./mysite [--api=https://talizen.com]
 talizen sync --site_id=<project_id>/<site_id> --dir=./mysite [--api=https://talizen.com]
+talizen version
+```
+
+## Release
+
+GitHub Releases are created by GitHub Actions when a tag matching `v*` is pushed.
+
+The release workflow builds binaries for:
+
+- macOS: `darwin/amd64`, `darwin/arm64`
+- Linux: `linux/amd64`, `linux/arm64`
+- Windows: `windows/amd64`, `windows/arm64`
+
+Create and push a release tag:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+If this repository is mirrored to GitHub with a different remote name, push the tag to that remote:
+
+```bash
+git remote add github git@github.com:bysir/talizen-cli.git
+git push github main
+git push github v0.1.0
+```
+
+Local dry run:
+
+```bash
+goreleaser release --snapshot --clean
 ```
