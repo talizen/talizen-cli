@@ -30,7 +30,7 @@ talizen login
 For local development:
 
 ```bash
-talizen login --api=http://localhost:8433
+talizen login --api=http://localhost:8433 --web=http://localhost:5173
 ```
 
 The command opens a browser authorization page. After authorization succeeds, the CLI stores the token in:
@@ -40,6 +40,8 @@ The command opens a browser authorization page. After authorization succeeds, th
 ```
 
 The config file contains the API host and CLI token.
+
+When `--web` is omitted, the CLI uses `TALIZEN_WEB_HOST` if set. For local API hosts such as `localhost` or `127.0.0.1`, it defaults to `http://localhost:5173`.
 
 ## List Projects
 
@@ -111,7 +113,7 @@ Use a test project/site while validating the CLI. Do not run `sync` against prod
 ## Commands
 
 ```bash
-talizen login [--api=https://talizen.com]
+talizen login [--api=https://talizen.com] [--web=https://talizen.com]
 talizen projects [--api=https://talizen.com]
 talizen pull --site_id=<project_id>/<site_id> --dir=./mysite [--api=https://talizen.com]
 talizen sync --site_id=<project_id>/<site_id> --dir=./mysite [--api=https://talizen.com]
