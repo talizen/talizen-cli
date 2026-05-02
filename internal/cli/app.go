@@ -23,6 +23,26 @@ func defaultAPIHost() string {
 	return defaultHost
 }
 
+func defaultWebHost(apiHost string) string {
+	if v := strings.TrimSpace(os.Getenv("TALIZEN_WEB_HOST")); v != "" {
+		return v
+	}
+
+	u, err := url.Parse(apiHost)
+	if err == nil {
+		host := u.Hostname()
+		if host == "localhost" || host == "127.0.0.1" {
+			u.Host = "localhost:5173"
+			u.Path = ""
+			u.RawQuery = ""
+			u.Fragment = ""
+			return strings.TrimRight(u.String(), "/")
+		}
+	}
+
+	return apiHost
+}
+
 func Run(ctx context.Context, args []string) error {
 	if len(args) == 0 {
 		printUsage()
@@ -50,7 +70,7 @@ func printUsage() {
 	fmt.Println(`talizen cli
 
 Usage:
-  talizen login [--api=https://talizen.com]
+  talizen login [--api=https://talizen.com] [--web=https://talizen.com]
   talizen projects
   talizen pull --site_id=<project_id>/<site_id> --dir=./mysite
   talizen sync --site_id=<project_id>/<site_id> --dir=./mysite`)
@@ -71,6 +91,7 @@ func clientFromConfig(apiHost string) (*talizen.Client, Config, error) {
 func runLogin(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("login", flag.ContinueOnError)
 	apiHost := fs.String("api", "", "Talizen API host")
+	webHost := fs.String("web", "", "Talizen web host")
 	err := fs.Parse(args)
 	if err != nil {
 		return err
@@ -81,7 +102,12 @@ func runLogin(ctx context.Context, args []string) error {
 		return err
 	}
 
-	session, err := client.CreateCLIAuthSession(ctx)
+	resolvedWebHost := strings.TrimSpace(*webHost)
+	if resolvedWebHost == "" {
+		resolvedWebHost = defaultWebHost(cfg.APIHost)
+	}
+
+	session, err := client.CreateCLIAuthSession(ctx, resolvedWebHost)
 	if err != nil {
 		return err
 	}

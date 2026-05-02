@@ -104,9 +104,11 @@ type CLIAuthSessionResult struct {
 	UserID int64  `json:"user_id"`
 }
 
-func (c *Client) CreateCLIAuthSession(ctx context.Context) (CLIAuthSession, error) {
+func (c *Client) CreateCLIAuthSession(ctx context.Context, webURL string) (CLIAuthSession, error) {
 	var ret CLIAuthSession
-	err := c.do(ctx, http.MethodPost, "/api/u/cli/auth/session", nil, map[string]any{}, &ret)
+	err := c.do(ctx, http.MethodPost, "/api/u/cli/auth/session", nil, map[string]any{
+		"web_url": strings.TrimSpace(webURL),
+	}, &ret)
 	if err != nil {
 		return CLIAuthSession{}, err
 	}
