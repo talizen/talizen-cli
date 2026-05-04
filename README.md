@@ -6,6 +6,12 @@ The CLI does not render sites locally. Talizen remains responsible for rendering
 
 ## Install
 
+Using npm:
+
+```bash
+npm install -g @talizen/talizen-cli
+```
+
 Build from source:
 
 ```bash
@@ -42,6 +48,7 @@ The command opens a browser authorization page. After authorization succeeds, th
 The config file contains the API host and CLI token.
 
 When `--web` is omitted, the CLI uses `TALIZEN_WEB_HOST` if set. For local API hosts such as `localhost` or `127.0.0.1`, it defaults to `http://localhost:5173`.
+For production, the default API host and default web host are both `https://talizen.com`.
 
 ## List Projects
 
@@ -96,6 +103,20 @@ talizen sync --api=http://localhost:8433 --site_id=<project_id>/<site_id> --dir=
 
 When a file is changed locally, the CLI calls the existing Talizen `site_action` API and updates the remote site in realtime. The command also prints the remote preview URL when available.
 
+## Open Preview
+
+Open the remote preview URL for a site in the browser:
+
+```bash
+talizen preview --site_id=<project_id>/<site_id>
+```
+
+For local development:
+
+```bash
+talizen preview --api=http://localhost:8433 --site_id=<project_id>/<site_id>
+```
+
 ## Sync Boundary
 
 The current MVP sync mode is one-way:
@@ -117,12 +138,15 @@ talizen login [--api=https://talizen.com] [--web=https://talizen.com]
 talizen projects [--api=https://talizen.com]
 talizen pull --site_id=<project_id>/<site_id> --dir=./mysite [--api=https://talizen.com]
 talizen sync --site_id=<project_id>/<site_id> --dir=./mysite [--api=https://talizen.com]
+talizen preview --site_id=<project_id>/<site_id> [--api=https://talizen.com]
+talizen publish [--commit=<commit>]
 talizen version
 ```
 
 ## Release
 
 GitHub Releases are created by GitHub Actions when a tag matching `v*` is pushed.
+The same workflow publishes the npm package `@talizen/talizen-cli`.
 
 The release workflow builds binaries for:
 
@@ -136,6 +160,19 @@ Create and push a release tag:
 git tag v0.1.0
 git push origin v0.1.0
 ```
+
+Before pushing a release tag, make sure `package.json` has the same version as the
+tag without the leading `v`, and configure the GitHub Actions secret `NPM_TOKEN`
+with an npm automation token that can publish `@talizen/talizen-cli`.
+
+Or publish the current CLI version from the CLI:
+
+```bash
+talizen publish
+talizen publish --commit=<commit>
+```
+
+The command creates `v<current version>` at `HEAD` by default, or at the supplied commit, then pushes the tag to `origin`.
 
 If this repository is mirrored to GitHub with a different remote name, push the tag to that remote:
 

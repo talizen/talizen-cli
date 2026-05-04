@@ -3,6 +3,7 @@ package cli
 import (
 	"bysir/talizen-cli/internal/talizen"
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"net/url"
@@ -13,7 +14,10 @@ import (
 	"time"
 )
 
-const defaultHost = "https://talizen.com"
+const (
+	defaultAPIHostValue = "https://talizen.com"
+	defaultWebHostValue = "https://talizen.com"
+)
 
 var version = "dev"
 
@@ -22,7 +26,7 @@ func defaultAPIHost() string {
 		return v
 	}
 
-	return defaultHost
+	return defaultAPIHostValue
 }
 
 func defaultWebHost(apiHost string) string {
@@ -42,7 +46,7 @@ func defaultWebHost(apiHost string) string {
 		}
 	}
 
-	return apiHost
+	return defaultWebHostValue
 }
 
 func Run(ctx context.Context, args []string) error {
@@ -60,6 +64,10 @@ func Run(ctx context.Context, args []string) error {
 		return runPull(ctx, args[1:])
 	case "sync":
 		return runSync(ctx, args[1:])
+	case "preview":
+		return runPreview(ctx, args[1:])
+	case "publish":
+		return runPublish(ctx, args[1:])
 	case "version":
 		fmt.Println(version)
 		return nil
@@ -79,6 +87,8 @@ Usage:
   talizen projects
   talizen pull --site_id=<project_id>/<site_id> --dir=./mysite
   talizen sync --site_id=<project_id>/<site_id> --dir=./mysite
+  talizen preview --site_id=<project_id>/<site_id>
+  talizen publish [--commit=<commit>]
   talizen version`)
 }
 
@@ -245,6 +255,123 @@ func runSync(ctx context.Context, args []string) error {
 	}
 
 	return syncer.Run(ctx)
+}
+
+func runPreview(ctx context.Context, args []string) error {
+	fs := flag.NewFlagSet("preview", flag.ContinueOnError)
+	apiHost := fs.String("api", "", "Talizen API host")
+	siteID := fs.String("site_id", "", "project_id/site_id")
+	err := fs.Parse(args)
+	if err != nil {
+		return err
+	}
+
+	_, realSiteID, err := parseSiteRef(*siteID)
+	if err != nil {
+		return err
+	}
+
+	client, _, err := clientFromConfig(*apiHost)
+	if err != nil {
+		return err
+	}
+
+	url, err := previewURL(ctx, client, realSiteID)
+	if err != nil {
+		return err
+	}
+	if url == "" {
+		return fmt.Errorf("preview URL is unavailable")
+	}
+
+	fmt.Printf("Opening preview: %s\n", url)
+	return openBrowser(url)
+}
+
+func runPublish(ctx context.Context, args []string) error {
+	fs := flag.NewFlagSet("publish", flag.ContinueOnError)
+	commit := fs.String("commit", "", "commit to tag")
+	err := fs.Parse(args)
+	if err != nil {
+		return err
+	}
+
+	if fs.NArg() > 1 {
+		return fmt.Errorf("publish accepts at most one commit argument")
+	}
+	if fs.NArg() == 1 {
+		if strings.TrimSpace(*commit) != "" {
+			return fmt.Errorf("commit specified twice")
+		}
+		*commit = fs.Arg(0)
+	}
+
+	tag, err := releaseTag(version)
+	if err != nil {
+		return err
+	}
+
+	target := strings.TrimSpace(*commit)
+	if target == "" {
+		target = "HEAD"
+	}
+
+	resolvedCommit, err := gitOutput(ctx, "rev-parse", "--verify", target+"^{commit}")
+	if err != nil {
+		return fmt.Errorf("resolve commit %q: %w", target, err)
+	}
+
+	err = gitRun(ctx, "rev-parse", "--is-inside-work-tree")
+	if err != nil {
+		return fmt.Errorf("publish must be run inside a git repository: %w", err)
+	}
+
+	err = gitRun(ctx, "rev-parse", "--verify", "refs/tags/"+tag)
+	if err == nil {
+		return fmt.Errorf("tag %s already exists locally", tag)
+	}
+
+	fmt.Printf("Publishing %s at %s\n", tag, resolvedCommit)
+	if err := gitRun(ctx, "tag", tag, resolvedCommit); err != nil {
+		return fmt.Errorf("create tag %s: %w", tag, err)
+	}
+	if err := gitRun(ctx, "push", "origin", tag); err != nil {
+		return fmt.Errorf("push tag %s: %w", tag, err)
+	}
+
+	fmt.Printf("Published %s\n", tag)
+	return nil
+}
+
+func releaseTag(rawVersion string) (string, error) {
+	v := strings.TrimSpace(rawVersion)
+	if v == "" || v == "dev" {
+		return "", fmt.Errorf("cannot publish version %q", rawVersion)
+	}
+	if strings.HasPrefix(v, "v") {
+		return v, nil
+	}
+
+	return "v" + v, nil
+}
+
+func gitRun(ctx context.Context, args ...string) error {
+	_, err := gitOutput(ctx, args...)
+	return err
+}
+
+func gitOutput(ctx context.Context, args ...string) (string, error) {
+	cmd := exec.CommandContext(ctx, "git", args...)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		msg := strings.TrimSpace(string(out))
+		if msg == "" {
+			return "", err
+		}
+		return "", errors.New(msg)
+	}
+
+	return strings.TrimSpace(string(out)), nil
 }
 
 func parseSiteRef(ref string) (string, string, error) {
