@@ -70,6 +70,14 @@ func Run(ctx context.Context, args []string) error {
 		return runPreview(ctx, args[1:])
 	case "publish":
 		return runPublish(ctx, args[1:])
+	case "cms":
+		return runCMS(ctx, args[1:])
+	case "content":
+		return runContent(ctx, args[1:])
+	case "form":
+		return runForm(ctx, args[1:])
+	case "upload":
+		return runUpload(ctx, args[1:])
 	case "version":
 		fmt.Println(version)
 		return nil
@@ -100,6 +108,10 @@ Usage:
   talizen sync --site_id=<project_id>/<site_id> --dir=./mysite
   talizen preview --site_id=<project_id>/<site_id>
   talizen publish --site_id=<project_id>/<site_id>
+  talizen cms collections --site_id=<project_id>/<site_id>
+  talizen content list --site_id=<project_id>/<site_id> --collection=<key>
+  talizen form list --site_id=<project_id>/<site_id>
+  talizen upload --site_id=<project_id>/<site_id> --file=./image.png
   talizen version
 
 Commands:
@@ -110,6 +122,10 @@ Commands:
   sync      Watch a local directory and push local file changes to the remote site.
   preview   Open the remote preview URL for a site in the browser.
   publish   Publish a site to make the current remote site version live.
+  cms       Manage CMS collections.
+  content   Manage CMS content entries.
+  form      Manage forms and form submissions.
+  upload    Upload a local file as a Talizen site asset and print its URL.
   version   Print the installed CLI version.
 
 Options:

@@ -147,6 +147,94 @@ For local development:
 talizen publish --api=http://localhost:8433 --site_id=<project_id>/<site_id>
 ```
 
+## Manage CMS Collections
+
+List CMS collections:
+
+```bash
+talizen cms collections --site_id=<project_id>/<site_id>
+```
+
+Create a collection from a JSON Schema file:
+
+```bash
+talizen cms collection create --site_id=<project_id>/<site_id> --key=blogs --name="Blogs" --schema=./blogs.schema.json
+```
+
+Update or delete by collection key or id:
+
+```bash
+talizen cms collection get --site_id=<project_id>/<site_id> --key=blogs
+talizen cms collection update --site_id=<project_id>/<site_id> --key=blogs --schema=./blogs.schema.json
+talizen cms collection delete --site_id=<project_id>/<site_id> --key=blogs
+```
+
+`--schema` can point to either a raw JSON Schema object or a full collection JSON object containing fields such as `key`, `name`, `desc`, and `json_schema`.
+
+## Manage CMS Content
+
+List, get, create, update, and delete content entries:
+
+```bash
+talizen content list --site_id=<project_id>/<site_id> --collection=blogs
+talizen content get --site_id=<project_id>/<site_id> --collection=blogs --slug=hello-world
+talizen content create --site_id=<project_id>/<site_id> --collection=blogs --data=./content.json --slug=hello-world
+talizen content update --site_id=<project_id>/<site_id> --collection=blogs --id=<content_id> --data=./content.json
+talizen content delete --site_id=<project_id>/<site_id> --collection=blogs --id=<content_id>
+```
+
+`--data` can point to either a plain CMS content body or a full content object. A plain content body may include a business field named `body`. The CLI treats JSON as a full content object only when it includes wrapper fields such as `id`, `slug`, `content_app_id`, `json_schema`, `draft_body`, `status`, `sort`, or `tags`.
+
+## Manage Forms
+
+List, create, update, and delete forms:
+
+```bash
+talizen form list --site_id=<project_id>/<site_id>
+talizen form create --site_id=<project_id>/<site_id> --key=contact-form --name="Contact form" --schema=./contact.schema.json
+talizen form get --site_id=<project_id>/<site_id> --key=contact-form
+talizen form update --site_id=<project_id>/<site_id> --key=contact-form --schema=./contact.schema.json
+talizen form delete --site_id=<project_id>/<site_id> --key=contact-form
+```
+
+Inspect and delete form submissions:
+
+```bash
+talizen form logs --site_id=<project_id>/<site_id> --key=contact-form
+talizen form log get --site_id=<project_id>/<site_id> --key=contact-form --log_id=<log_id>
+talizen form log delete --site_id=<project_id>/<site_id> --key=contact-form --log_id=<log_id>
+```
+
+Submit a form payload through the platform API:
+
+```bash
+talizen form submit --site_id=<project_id>/<site_id> --key=contact-form --data=./payload.json
+```
+
+After creating or changing CMS collections or forms, run `talizen pull` again to refresh generated files such as `/types/cms.d.ts` and `/types/form.d.ts` before writing code that imports those types.
+
+## Upload Assets
+
+Upload a local file through the Talizen site asset flow:
+
+```bash
+talizen upload --site_id=<project_id>/<site_id> --file=./image.png
+```
+
+The command prints the public file URL by default. Use `--json` to inspect the
+full upload metadata, including `site_path`, a stable `/_assets/...` path that
+can be used from Talizen site code:
+
+```bash
+talizen upload --site_id=<project_id>/<site_id> --file=./image.png --json
+```
+
+Optional flags:
+
+```bash
+talizen upload --site_id=<project_id>/<site_id> --file=./image.png --name=hero.png --mimetype=image/png
+```
+
 ## Sync Boundary
 
 The current MVP sync mode is one-way:
@@ -179,6 +267,13 @@ talizen pull --site_id=<project_id>/<site_id> --dir=./mysite [--api=https://tali
 talizen sync --site_id=<project_id>/<site_id> --dir=./mysite [--api=https://talizen.com]
 talizen preview --site_id=<project_id>/<site_id> [--api=https://talizen.com]
 talizen publish --site_id=<project_id>/<site_id> [--api=https://talizen.com] [--note=<note>]
+talizen cms collections --site_id=<project_id>/<site_id> [--api=https://talizen.com]
+talizen cms collection create --site_id=<project_id>/<site_id> --key=<key> --name=<name> --schema=./schema.json
+talizen content list --site_id=<project_id>/<site_id> --collection=<key>
+talizen content create --site_id=<project_id>/<site_id> --collection=<key> --data=./content.json
+talizen form list --site_id=<project_id>/<site_id>
+talizen form create --site_id=<project_id>/<site_id> --key=<key> --name=<name> --schema=./schema.json
+talizen upload --site_id=<project_id>/<site_id> --file=./image.png
 talizen version
 ```
 
@@ -191,6 +286,10 @@ Command meanings:
 - `sync`: Watch a local directory and push local file changes to the remote site.
 - `preview`: Open the remote preview URL for a site in the browser.
 - `publish`: Publish a site to make the current remote site version live.
+- `cms`: Manage CMS collections.
+- `content`: Manage CMS content entries.
+- `form`: Manage forms and form submissions.
+- `upload`: Upload a local file as a Talizen site asset and print its URL.
 - `version`: Print the installed CLI version.
 
 ## Release
