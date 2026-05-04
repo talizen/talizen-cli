@@ -1,6 +1,10 @@
 package cli
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestReleaseTag(t *testing.T) {
 	tests := []struct {
@@ -52,5 +56,42 @@ func TestReleaseTag(t *testing.T) {
 				t.Fatalf("releaseTag(%q) = %q, want %q", tt.version, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestRunLogoutDeletesConfig(t *testing.T) {
+	homeDir := t.TempDir()
+	t.Setenv("HOME", homeDir)
+
+	cfgPath, err := configPath()
+	if err != nil {
+		t.Fatalf("configPath: %v", err)
+	}
+	err = os.MkdirAll(filepath.Dir(cfgPath), 0o755)
+	if err != nil {
+		t.Fatalf("create config dir: %v", err)
+	}
+	err = os.WriteFile(cfgPath, []byte(`{"api_host":"http://localhost:9432","token":"test"}`), 0o600)
+	if err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	err = runLogout(nil)
+	if err != nil {
+		t.Fatalf("runLogout: %v", err)
+	}
+
+	_, err = os.Stat(cfgPath)
+	if !os.IsNotExist(err) {
+		t.Fatalf("config still exists or stat failed: %v", err)
+	}
+}
+
+func TestRunLogoutMissingConfigSucceeds(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+
+	err := runLogout(nil)
+	if err != nil {
+		t.Fatalf("runLogout: %v", err)
 	}
 }

@@ -1,6 +1,6 @@
 {
   "name": "talizen-cli",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Talizen CLI for syncing local site code with Talizen.",
   "license": "MIT",
   "homepage": "https://github.com/talizen/talizen-cli#readme",
@@ -15,12 +15,13 @@
     "talizen": "bin/talizen.js"
   },
   "scripts": {
-    "postinstall": "node scripts/install.js",
+    "prepare:npm-binaries": "node scripts/prepare-npm-binaries.js",
     "test:npm": "node scripts/install.js --check"
   },
   "files": [
     "bin/",
     "scripts/",
+    "vendor/",
     "README.md"
   ],
   "engines": {

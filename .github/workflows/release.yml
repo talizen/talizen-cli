@@ -46,5 +46,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Prepare npm binaries
+        run: npm run prepare:npm-binaries
+
       - name: Publish npm package
         run: npm publish

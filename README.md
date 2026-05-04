@@ -50,6 +50,16 @@ The config file contains the API host and CLI token.
 When `--web` is omitted, the CLI uses `TALIZEN_WEB_HOST` if set. For local API hosts such as `localhost` or `127.0.0.1`, it defaults to `http://localhost:5173`.
 For production, the default API host and default web host are both `https://talizen.com`.
 
+## Logout
+
+Remove the saved CLI config:
+
+```bash
+talizen logout
+```
+
+This clears the saved token and any saved API host. The next command will use the production default unless you pass `--api` or set `TALIZEN_API_HOST`.
+
 ## List Projects
 
 ```bash
@@ -117,6 +127,26 @@ For local development:
 talizen preview --api=http://localhost:8433 --site_id=<project_id>/<site_id>
 ```
 
+## Publish Site
+
+Publish a site:
+
+```bash
+talizen publish --site_id=<project_id>/<site_id>
+```
+
+With a publish note:
+
+```bash
+talizen publish --site_id=<project_id>/<site_id> --note="Update homepage copy"
+```
+
+For local development:
+
+```bash
+talizen publish --api=http://localhost:8433 --site_id=<project_id>/<site_id>
+```
+
 ## Sync Boundary
 
 The current MVP sync mode is one-way:
@@ -135,11 +165,12 @@ Use a test project/site while validating the CLI. Do not run `sync` against prod
 
 ```bash
 talizen login [--api=https://talizen.com] [--web=https://talizen.com]
+talizen logout
 talizen projects [--api=https://talizen.com]
 talizen pull --site_id=<project_id>/<site_id> --dir=./mysite [--api=https://talizen.com]
 talizen sync --site_id=<project_id>/<site_id> --dir=./mysite [--api=https://talizen.com]
 talizen preview --site_id=<project_id>/<site_id> [--api=https://talizen.com]
-talizen publish [--commit=<commit>]
+talizen publish --site_id=<project_id>/<site_id> [--api=https://talizen.com] [--note=<note>]
 talizen version
 ```
 
@@ -164,15 +195,6 @@ git push origin v0.1.0
 Before pushing a release tag, make sure `package.json` has the same version as the
 tag without the leading `v`, and configure npm Trusted Publishing for `talizen-cli`
 with GitHub repository `talizen/talizen-cli` and workflow filename `release.yml`.
-
-Or publish the current CLI version from the CLI:
-
-```bash
-talizen publish
-talizen publish --commit=<commit>
-```
-
-The command creates `v<current version>` at `HEAD` by default, or at the supplied commit, then pushes the tag to `origin`.
 
 If this repository is mirrored to GitHub with a different remote name, push the tag to that remote:
 
