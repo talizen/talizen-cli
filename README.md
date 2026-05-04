@@ -163,6 +163,14 @@ Use a test project/site while validating the CLI. Do not run `sync` against prod
 
 ## Commands
 
+Talizen CLI is a local bridge for Talizen site code. It can authenticate with
+Talizen, list projects and sites, pull remote site files into a local directory,
+watch local files and sync changes back to Talizen, open the remote preview, and
+publish a site.
+
+It does not render sites locally. Rendering, CMS, assets, and realtime preview
+are handled by the Talizen backend and web app.
+
 ```bash
 talizen login [--api=https://talizen.com] [--web=https://talizen.com]
 talizen logout
@@ -173,6 +181,17 @@ talizen preview --site_id=<project_id>/<site_id> [--api=https://talizen.com]
 talizen publish --site_id=<project_id>/<site_id> [--api=https://talizen.com] [--note=<note>]
 talizen version
 ```
+
+Command meanings:
+
+- `login`: Authenticate this machine with Talizen and save a CLI token.
+- `logout`: Remove the saved CLI token and API host configuration.
+- `projects`: List available projects and sites. Use `project_id/site_id` with site commands.
+- `pull`: Download the current remote site files into a local directory.
+- `sync`: Watch a local directory and push local file changes to the remote site.
+- `preview`: Open the remote preview URL for a site in the browser.
+- `publish`: Publish a site to make the current remote site version live.
+- `version`: Print the installed CLI version.
 
 ## Release
 

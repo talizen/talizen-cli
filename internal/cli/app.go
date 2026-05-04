@@ -84,6 +84,14 @@ func Run(ctx context.Context, args []string) error {
 func printUsage() {
 	fmt.Println(`talizen cli
 
+Talizen CLI is a local bridge for Talizen site code. It can authenticate with
+Talizen, list projects and sites, pull remote site files into a local directory,
+watch local files and sync changes back to Talizen, open the remote preview, and
+publish a site.
+
+It does not render sites locally. Rendering, CMS, assets, and realtime preview
+are handled by the Talizen backend and web app.
+
 Usage:
   talizen login [--api=https://talizen.com] [--web=https://talizen.com]
   talizen logout
@@ -92,7 +100,24 @@ Usage:
   talizen sync --site_id=<project_id>/<site_id> --dir=./mysite
   talizen preview --site_id=<project_id>/<site_id>
   talizen publish --site_id=<project_id>/<site_id>
-  talizen version`)
+  talizen version
+
+Commands:
+  login     Authenticate this machine with Talizen and save a CLI token.
+  logout    Remove the saved CLI token and API host configuration.
+  projects  List available projects and sites. Use project_id/site_id with site commands.
+  pull      Download the current remote site files into a local directory.
+  sync      Watch a local directory and push local file changes to the remote site.
+  preview   Open the remote preview URL for a site in the browser.
+  publish   Publish a site to make the current remote site version live.
+  version   Print the installed CLI version.
+
+Options:
+  --api     Talizen API host. Defaults to https://talizen.com or TALIZEN_API_HOST.
+  --web     Talizen web host for login. Defaults to https://talizen.com or TALIZEN_WEB_HOST.
+  --site_id Site reference in <project_id>/<site_id> format.
+  --dir     Local site directory used by pull and sync.
+  --note    Optional publish note.`)
 }
 
 func clientFromConfig(apiHost string) (*talizen.Client, Config, error) {
