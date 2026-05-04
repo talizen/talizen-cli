@@ -9,7 +9,7 @@ The CLI does not render sites locally. Talizen remains responsible for rendering
 Using npm:
 
 ```bash
-npm install -g @talizen/talizen-cli
+npm install -g talizen-cli
 ```
 
 Build from source:
@@ -146,7 +146,7 @@ talizen version
 ## Release
 
 GitHub Releases are created by GitHub Actions when a tag matching `v*` is pushed.
-The same workflow publishes the npm package `@talizen/talizen-cli`.
+The same workflow publishes the npm package `talizen-cli`.
 
 The release workflow builds binaries for:
 
@@ -162,8 +162,8 @@ git push origin v0.1.0
 ```
 
 Before pushing a release tag, make sure `package.json` has the same version as the
-tag without the leading `v`, and configure the GitHub Actions secret `NPM_TOKEN`
-with an npm automation token that can publish `@talizen/talizen-cli`.
+tag without the leading `v`, and configure npm Trusted Publishing for `talizen-cli`
+with GitHub repository `talizen/talizen-cli` and workflow filename `release.yml`.
 
 Or publish the current CLI version from the CLI:
 

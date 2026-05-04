@@ -13,7 +13,7 @@ const result = spawnSync(binary, process.argv.slice(2), {
 if (result.error) {
   if (result.error.code === "ENOENT") {
     console.error(
-      "Talizen CLI binary is missing. Reinstall @talizen/talizen-cli and try again.",
+      "Talizen CLI binary is missing. Reinstall talizen-cli and try again.",
     );
   } else {
     console.error(result.error.message);
