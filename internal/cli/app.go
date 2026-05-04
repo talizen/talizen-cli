@@ -58,6 +58,8 @@ func Run(ctx context.Context, args []string) error {
 	switch args[0] {
 	case "login":
 		return runLogin(ctx, args[1:])
+	case "logout":
+		return runLogout(args[1:])
 	case "projects":
 		return runProjects(ctx, args[1:])
 	case "pull":
@@ -84,11 +86,12 @@ func printUsage() {
 
 Usage:
   talizen login [--api=https://talizen.com] [--web=https://talizen.com]
+  talizen logout
   talizen projects
   talizen pull --site_id=<project_id>/<site_id> --dir=./mysite
   talizen sync --site_id=<project_id>/<site_id> --dir=./mysite
   talizen preview --site_id=<project_id>/<site_id>
-  talizen publish [--commit=<commit>]
+  talizen publish --site_id=<project_id>/<site_id>
   talizen version`)
 }
 
@@ -155,6 +158,24 @@ func runLogin(ctx context.Context, args []string) error {
 	}
 
 	return fmt.Errorf("authorization timed out")
+}
+
+func runLogout(args []string) error {
+	fs := flag.NewFlagSet("logout", flag.ContinueOnError)
+	err := fs.Parse(args)
+	if err != nil {
+		return err
+	}
+	if fs.NArg() != 0 {
+		return fmt.Errorf("logout does not accept positional arguments")
+	}
+
+	if err := deleteConfig(); err != nil {
+		return err
+	}
+
+	fmt.Println("Logged out.")
+	return nil
 }
 
 func runProjects(ctx context.Context, args []string) error {
@@ -290,56 +311,33 @@ func runPreview(ctx context.Context, args []string) error {
 
 func runPublish(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("publish", flag.ContinueOnError)
-	commit := fs.String("commit", "", "commit to tag")
+	apiHost := fs.String("api", "", "Talizen API host")
+	siteID := fs.String("site_id", "", "project_id/site_id")
+	note := fs.String("note", "", "publish note")
 	err := fs.Parse(args)
 	if err != nil {
 		return err
 	}
 
-	if fs.NArg() > 1 {
-		return fmt.Errorf("publish accepts at most one commit argument")
-	}
-	if fs.NArg() == 1 {
-		if strings.TrimSpace(*commit) != "" {
-			return fmt.Errorf("commit specified twice")
-		}
-		*commit = fs.Arg(0)
+	if fs.NArg() != 0 {
+		return fmt.Errorf("publish does not accept positional arguments; use --site_id=<project_id>/<site_id>")
 	}
 
-	tag, err := releaseTag(version)
+	projectID, realSiteID, err := parseSiteRef(*siteID)
 	if err != nil {
 		return err
 	}
 
-	target := strings.TrimSpace(*commit)
-	if target == "" {
-		target = "HEAD"
-	}
-
-	resolvedCommit, err := gitOutput(ctx, "rev-parse", "--verify", target+"^{commit}")
+	client, _, err := clientFromConfig(*apiHost)
 	if err != nil {
-		return fmt.Errorf("resolve commit %q: %w", target, err)
+		return err
 	}
 
-	err = gitRun(ctx, "rev-parse", "--is-inside-work-tree")
-	if err != nil {
-		return fmt.Errorf("publish must be run inside a git repository: %w", err)
+	if err := client.PublishSite(ctx, projectID, realSiteID, *note); err != nil {
+		return err
 	}
 
-	err = gitRun(ctx, "rev-parse", "--verify", "refs/tags/"+tag)
-	if err == nil {
-		return fmt.Errorf("tag %s already exists locally", tag)
-	}
-
-	fmt.Printf("Publishing %s at %s\n", tag, resolvedCommit)
-	if err := gitRun(ctx, "tag", tag, resolvedCommit); err != nil {
-		return fmt.Errorf("create tag %s: %w", tag, err)
-	}
-	if err := gitRun(ctx, "push", "origin", tag); err != nil {
-		return fmt.Errorf("push tag %s: %w", tag, err)
-	}
-
-	fmt.Printf("Published %s\n", tag)
+	fmt.Printf("Published %s/%s\n", projectID, realSiteID)
 	return nil
 }
 

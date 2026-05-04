@@ -3,8 +3,10 @@
 const { spawnSync } = require("node:child_process");
 const path = require("node:path");
 
+const platform = process.platform;
+const arch = process.arch;
 const exe = process.platform === "win32" ? "talizen.exe" : "talizen";
-const binary = path.join(__dirname, "..", "vendor", exe);
+const binary = path.join(__dirname, "..", "vendor", `${platform}-${arch}`, exe);
 
 const result = spawnSync(binary, process.argv.slice(2), {
   stdio: "inherit",

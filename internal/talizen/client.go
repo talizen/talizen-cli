@@ -228,6 +228,15 @@ func (c *Client) DoSiteAction(ctx context.Context, projectID string, siteID stri
 	return ret, nil
 }
 
+func (c *Client) PublishSite(ctx context.Context, projectID string, siteID string, note string) error {
+	path := fmt.Sprintf("/api/u/project/%s/site/%s/publish", url.PathEscape(projectID), url.PathEscape(siteID))
+	body := map[string]any{
+		"note": strings.TrimSpace(note),
+	}
+
+	return c.do(ctx, http.MethodPost, path, nil, body, nil)
+}
+
 func StringPtr(v string) *string {
 	return &v
 }
