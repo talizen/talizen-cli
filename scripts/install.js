@@ -100,7 +100,7 @@ function releaseURL(name) {
 async function download(url, destination) {
   const response = await fetch(url, {
     headers: {
-      "user-agent": "@talizen/talizen-cli installer",
+      "user-agent": "talizen-cli installer",
     },
     redirect: "follow",
   });
@@ -116,7 +116,7 @@ async function download(url, destination) {
 async function verifyChecksum(checksumURL, archivePath, archiveName) {
   const response = await fetch(checksumURL, {
     headers: {
-      "user-agent": "@talizen/talizen-cli installer",
+      "user-agent": "talizen-cli installer",
     },
     redirect: "follow",
   });
