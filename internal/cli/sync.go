@@ -79,15 +79,18 @@ func (s *Syncer) Run(ctx context.Context) error {
 				fmt.Printf("watch error: %v\n", err)
 			}
 		case event := <-watcher.Events:
-			if shouldSkipPath(event.Name) {
+			if shouldSkipLocalPath(s.dir, event.Name) {
 				continue
 			}
 			if event.Op&fsnotify.Create != 0 {
 				info, statErr := os.Stat(event.Name)
 				if statErr == nil && info.IsDir() {
 					_ = filepath.WalkDir(event.Name, func(path string, d os.DirEntry, err error) error {
-						if err != nil || !d.IsDir() || shouldSkipPath(path) {
+						if err != nil || !d.IsDir() {
 							return nil
+						}
+						if shouldSkipLocalPath(s.dir, path) {
+							return filepath.SkipDir
 						}
 						return watcher.Add(path)
 					})
@@ -147,7 +150,7 @@ func (s *Syncer) syncLocalSnapshot(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		if shouldSkipPath(path) {
+		if shouldSkipLocalPath(s.dir, path) {
 			if d.IsDir() {
 				return filepath.SkipDir
 			}
@@ -166,8 +169,11 @@ func (s *Syncer) watchDirs(watcher *fsnotify.Watcher) error {
 		if err != nil {
 			return err
 		}
-		if shouldSkipPath(path) {
-			return filepath.SkipDir
+		if shouldSkipLocalPath(s.dir, path) {
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
 		}
 		if !d.IsDir() {
 			return nil
@@ -207,6 +213,9 @@ func (s *Syncer) upsertLocalFile(ctx context.Context, localPath string) error {
 	bodyBytes, err := os.ReadFile(localPath)
 	if err != nil {
 		return fmt.Errorf("read %s: %w", remotePath, err)
+	}
+	if !isUTF8FileBody(bodyBytes) {
+		return nil
 	}
 	body := string(bodyBytes)
 
