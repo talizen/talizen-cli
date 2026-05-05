@@ -25,6 +25,11 @@ type Syncer struct {
 	remoteByPath map[string]talizen.File
 }
 
+type localFileAction struct {
+	remotePath string
+	action     talizen.SiteActionChange
+}
+
 func NewSyncer(client *talizen.Client, projectID string, siteID string, dir string) (*Syncer, error) {
 	absDir, err := filepath.Abs(dir)
 	if err != nil {
@@ -146,7 +151,37 @@ func (s *Syncer) refreshRemote(ctx context.Context) error {
 }
 
 func (s *Syncer) syncLocalSnapshot(ctx context.Context) error {
-	return filepath.WalkDir(s.dir, func(path string, d os.DirEntry, err error) error {
+	actions, err := s.collectLocalSnapshotActions()
+	if err != nil {
+		return err
+	}
+	if len(actions) == 0 {
+		fmt.Println("No local changes to push")
+		return nil
+	}
+
+	changes := make([]talizen.SiteActionChange, 0, len(actions))
+	for _, action := range actions {
+		changes = append(changes, action.action)
+	}
+
+	_, err = s.client.DoSiteAction(ctx, s.projectID, s.siteID, s.clientID, changes)
+	if err != nil {
+		return err
+	}
+
+	err = s.refreshRemote(ctx)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("synced %d changed files\n", len(actions))
+	return nil
+}
+
+func (s *Syncer) collectLocalSnapshotActions() ([]localFileAction, error) {
+	var actions []localFileAction
+	err := filepath.WalkDir(s.dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -160,8 +195,19 @@ func (s *Syncer) syncLocalSnapshot(ctx context.Context) error {
 			return nil
 		}
 
-		return s.upsertLocalFile(ctx, path)
+		action, changed, err := s.localFileAction(path)
+		if err != nil {
+			return err
+		}
+		if changed {
+			actions = append(actions, action)
+		}
+		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
+	return actions, nil
 }
 
 func (s *Syncer) watchDirs(watcher *fsnotify.Watcher) error {
@@ -205,17 +251,44 @@ func (s *Syncer) handleEvent(ctx context.Context, event fsnotify.Event) error {
 }
 
 func (s *Syncer) upsertLocalFile(ctx context.Context, localPath string) error {
-	remotePath, err := localPathToRemote(s.dir, localPath)
+	action, changed, err := s.localFileAction(localPath)
+	if err != nil {
+		return err
+	}
+	if !changed {
+		return nil
+	}
+
+	_, err = s.client.DoSiteAction(ctx, s.projectID, s.siteID, s.clientID, []talizen.SiteActionChange{action.action})
 	if err != nil {
 		return err
 	}
 
+	err = s.refreshRemote(ctx)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("synced %s\n", action.remotePath)
+	return nil
+}
+
+func (s *Syncer) localFileAction(localPath string) (localFileAction, bool, error) {
+	remotePath, err := localPathToRemote(s.dir, localPath)
+	if err != nil {
+		return localFileAction{}, false, err
+	}
+
 	bodyBytes, err := os.ReadFile(localPath)
 	if err != nil {
-		return fmt.Errorf("read %s: %w", remotePath, err)
+		return localFileAction{}, false, fmt.Errorf("read %s: %w", remotePath, err)
 	}
 	if !isUTF8FileBody(bodyBytes) {
-		return nil
+		return localFileAction{}, false, nil
+	}
+	hash, err := qetagHash(bodyBytes)
+	if err != nil {
+		return localFileAction{}, false, err
 	}
 	body := string(bodyBytes)
 
@@ -224,7 +297,10 @@ func (s *Syncer) upsertLocalFile(ctx context.Context, localPath string) error {
 	s.mu.Unlock()
 
 	if exist && remote.Readonly {
-		return nil
+		return localFileAction{}, false, nil
+	}
+	if exist && remote.Hash != "" && remote.Hash == hash {
+		return localFileAction{}, false, nil
 	}
 
 	action := talizen.SiteActionChange{
@@ -242,18 +318,7 @@ func (s *Syncer) upsertLocalFile(ctx context.Context, localPath string) error {
 		}
 	}
 
-	_, err = s.client.DoSiteAction(ctx, s.projectID, s.siteID, s.clientID, []talizen.SiteActionChange{action})
-	if err != nil {
-		return err
-	}
-
-	err = s.refreshRemote(ctx)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("synced %s\n", remotePath)
-	return nil
+	return localFileAction{remotePath: remotePath, action: action}, true, nil
 }
 
 func (s *Syncer) deleteRemotePath(ctx context.Context, remotePath string) error {
