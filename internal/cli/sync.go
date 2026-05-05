@@ -181,6 +181,7 @@ func (s *Syncer) syncLocalSnapshot(ctx context.Context) error {
 
 func (s *Syncer) collectLocalSnapshotActions() ([]localFileAction, error) {
 	var actions []localFileAction
+	localPaths := map[string]struct{}{}
 	err := filepath.WalkDir(s.dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -195,6 +196,12 @@ func (s *Syncer) collectLocalSnapshotActions() ([]localFileAction, error) {
 			return nil
 		}
 
+		remotePath, err := localPathToRemote(s.dir, path)
+		if err != nil {
+			return err
+		}
+		localPaths[remotePath] = struct{}{}
+
 		action, changed, err := s.localFileAction(path)
 		if err != nil {
 			return err
@@ -207,6 +214,19 @@ func (s *Syncer) collectLocalSnapshotActions() ([]localFileAction, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	s.mu.Lock()
+	for remotePath, remote := range s.remoteByPath {
+		if remote.Readonly {
+			continue
+		}
+		if _, existsLocally := localPaths[remotePath]; existsLocally {
+			continue
+		}
+		actions = append(actions, deleteFileAction(remotePath))
+	}
+	s.mu.Unlock()
+
 	return actions, nil
 }
 
@@ -323,19 +343,14 @@ func (s *Syncer) localFileAction(localPath string) (localFileAction, bool, error
 
 func (s *Syncer) deleteRemotePath(ctx context.Context, remotePath string) error {
 	s.mu.Lock()
-	_, exist := s.remoteByPath[remotePath]
+	remote, exist := s.remoteByPath[remotePath]
 	s.mu.Unlock()
-	if !exist {
+	if !exist || remote.Readonly {
 		return nil
 	}
 
 	_, err := s.client.DoSiteAction(ctx, s.projectID, s.siteID, s.clientID, []talizen.SiteActionChange{
-		{
-			Action: "file_delete",
-			File: talizen.SiteActionFileSpec{
-				Path: talizen.StringPtr(remotePath),
-			},
-		},
+		deleteFileAction(remotePath).action,
 	})
 	if err != nil {
 		return err
@@ -348,4 +363,16 @@ func (s *Syncer) deleteRemotePath(ctx context.Context, remotePath string) error 
 
 	fmt.Printf("deleted %s\n", remotePath)
 	return nil
+}
+
+func deleteFileAction(remotePath string) localFileAction {
+	return localFileAction{
+		remotePath: remotePath,
+		action: talizen.SiteActionChange{
+			Action: "file_delete",
+			File: talizen.SiteActionFileSpec{
+				Path: talizen.StringPtr(remotePath),
+			},
+		},
+	}
 }
