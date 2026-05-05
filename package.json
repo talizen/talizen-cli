@@ -1,6 +1,6 @@
 {
   "name": "talizen-cli",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Talizen CLI for syncing local site code with Talizen.",
   "license": "MIT",
   "homepage": "https://github.com/talizen/talizen-cli#readme",
