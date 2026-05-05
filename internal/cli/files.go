@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode/utf8"
 )
 
 func remotePathToLocal(root string, remotePath string) (string, error) {
@@ -64,12 +65,38 @@ func writeRemoteFiles(root string, files []talizen.File) error {
 	return nil
 }
 
-func shouldSkipPath(path string) bool {
-	base := filepath.Base(path)
+func shouldSkipLocalPath(root string, path string) bool {
+	rel, err := filepath.Rel(root, path)
+	if err != nil || rel == "." {
+		return false
+	}
+
+	parts := strings.Split(filepath.ToSlash(rel), "/")
+	for _, part := range parts {
+		if shouldSkipLocalPathPart(part) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func shouldSkipLocalPathPart(base string) bool {
+	if base == "" {
+		return false
+	}
+	if strings.HasPrefix(base, ".") {
+		return true
+	}
+
 	switch base {
-	case ".git", ".talizen", "node_modules", "dist", "build":
+	case "node_modules", "bower_components", "vendor", "dist", "build", "coverage":
 		return true
 	default:
 		return false
 	}
+}
+
+func isUTF8FileBody(body []byte) bool {
+	return utf8.Valid(body)
 }
