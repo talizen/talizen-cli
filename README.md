@@ -79,7 +79,7 @@ project_id    Project Name
   project_id/site_id    Site Name
 ```
 
-Use the `project_id/site_id` value with `pull` and `sync`.
+Use the `project_id/site_id` value with `pull`, `push`, and `sync`.
 
 ## Pull Site Code
 
@@ -97,9 +97,26 @@ talizen pull --api=http://localhost:8433 --site_id=<project_id>/<site_id> --dir=
 
 The command writes remote files such as `/page/...`, `/component/...`, and `talizen.config.ts` into the target directory.
 
+## Push Local Changes
+
+Push the current local directory snapshot to Talizen and exit:
+
+```bash
+talizen push --site_id=<project_id>/<site_id> --dir=./mysite
+```
+
+For local development:
+
+```bash
+talizen push --api=http://localhost:8433 --site_id=<project_id>/<site_id> --dir=./mysite
+```
+
+The CLI scans the local directory and calls the existing Talizen `site_action`
+API to create or update remote files.
+
 ## Sync Local Changes
 
-Watch a local directory and sync local file changes to Talizen:
+Run watch mode for a local directory:
 
 ```bash
 talizen sync --site_id=<project_id>/<site_id> --dir=./mysite
@@ -111,7 +128,10 @@ For local development:
 talizen sync --api=http://localhost:8433 --site_id=<project_id>/<site_id> --dir=./mysite
 ```
 
-When a file is changed locally, the CLI calls the existing Talizen `site_action` API and updates the remote site in realtime. The command also prints the remote preview URL when available.
+`sync` first pushes the current local snapshot, then keeps running and
+automatically listens for local file changes. When a file is changed locally,
+the CLI calls the existing Talizen `site_action` API and updates the remote site
+in realtime. The command also prints the remote preview URL when available.
 
 ## Open Preview
 
@@ -235,26 +255,35 @@ Optional flags:
 talizen upload --site_id=<project_id>/<site_id> --file=./image.png --name=hero.png --mimetype=image/png
 ```
 
-## Sync Boundary
+## Push And Sync Boundary
 
-The current MVP sync mode is one-way:
+The current MVP push/sync mode is one-way:
 
 ```text
 local directory -> Talizen remote site
 ```
 
-When `sync` starts, it fetches the remote file list once to build the local path to remote file id mapping. After that, it watches local files and pushes local changes.
+`push` fetches the remote file list to build the local path to remote file id
+mapping, scans the local directory, uploads the current local snapshot, and then
+exits.
 
-It does not yet pull Web editor changes back to the local directory while running. If you edit the same site in the Web editor, run `pull` manually or restart from a clean local copy before continuing.
+`sync` is watch mode. It performs the same initial local snapshot push, then
+keeps running and automatically listens for later local changes.
 
-Use a test project/site while validating the CLI. Do not run `sync` against production content unless the local directory is intended to be the source of truth.
+Neither command pulls Web editor changes back to the local directory while
+running. If you edit the same site in the Web editor, run `pull` manually or
+restart from a clean local copy before continuing.
+
+Use a test project/site while validating the CLI. Do not run `push` or `sync`
+against production content unless the local directory is intended to be the
+source of truth.
 
 ## Commands
 
 Talizen CLI is a local bridge for Talizen site code. It can authenticate with
 Talizen, list projects and sites, pull remote site files into a local directory,
-watch local files and sync changes back to Talizen, open the remote preview, and
-publish a site.
+push local files back to Talizen, watch local files for realtime sync, open the
+remote preview, and publish a site.
 
 It does not render sites locally. Rendering, CMS, assets, and realtime preview
 are handled by the Talizen backend and web app.
@@ -264,6 +293,7 @@ talizen login [--api=https://talizen.com] [--web=https://talizen.com]
 talizen logout
 talizen projects [--api=https://talizen.com]
 talizen pull --site_id=<project_id>/<site_id> --dir=./mysite [--api=https://talizen.com]
+talizen push --site_id=<project_id>/<site_id> --dir=./mysite [--api=https://talizen.com]
 talizen sync --site_id=<project_id>/<site_id> --dir=./mysite [--api=https://talizen.com]
 talizen preview --site_id=<project_id>/<site_id> [--api=https://talizen.com]
 talizen publish --site_id=<project_id>/<site_id> [--api=https://talizen.com] [--note=<note>]
@@ -283,7 +313,8 @@ Command meanings:
 - `logout`: Remove the saved CLI token and API host configuration.
 - `projects`: List available projects and sites. Use `project_id/site_id` with site commands.
 - `pull`: Download the current remote site files into a local directory.
-- `sync`: Watch a local directory and push local file changes to the remote site.
+- `push`: Push the current local directory snapshot to the remote site.
+- `sync`: Watch mode; push the current snapshot, then keep listening for local changes.
 - `preview`: Open the remote preview URL for a site in the browser.
 - `publish`: Publish a site to make the current remote site version live.
 - `cms`: Manage CMS collections.
@@ -320,10 +351,4 @@ If this repository is mirrored to GitHub with a different remote name, push the 
 git remote add github git@github.com:talizen/talizen-cli.git
 git push github main
 git push github v0.1.0
-```
-
-Local dry run:
-
-```bash
-goreleaser release --snapshot --clean
 ```

@@ -64,6 +64,8 @@ func Run(ctx context.Context, args []string) error {
 		return runProjects(ctx, args[1:])
 	case "pull":
 		return runPull(ctx, args[1:])
+	case "push":
+		return runPush(ctx, args[1:])
 	case "sync":
 		return runSync(ctx, args[1:])
 	case "preview":
@@ -94,8 +96,8 @@ func printUsage() {
 
 Talizen CLI is a local bridge for Talizen site code. It can authenticate with
 Talizen, list projects and sites, pull remote site files into a local directory,
-watch local files and sync changes back to Talizen, open the remote preview, and
-publish a site.
+push local files back to Talizen, watch local files for realtime sync, open the
+remote preview, and publish a site.
 
 It does not render sites locally. Rendering, CMS, assets, and realtime preview
 are handled by the Talizen backend and web app.
@@ -105,6 +107,7 @@ Usage:
   talizen logout
   talizen projects
   talizen pull --site_id=<project_id>/<site_id> --dir=./mysite
+  talizen push --site_id=<project_id>/<site_id> --dir=./mysite
   talizen sync --site_id=<project_id>/<site_id> --dir=./mysite
   talizen preview --site_id=<project_id>/<site_id>
   talizen publish --site_id=<project_id>/<site_id>
@@ -119,7 +122,8 @@ Commands:
   logout    Remove the saved CLI token and API host configuration.
   projects  List available projects and sites. Use project_id/site_id with site commands.
   pull      Download the current remote site files into a local directory.
-  sync      Watch a local directory and push local file changes to the remote site.
+  push      Push the current local directory snapshot to the remote site.
+  sync      Watch mode: push the current snapshot, then keep listening for local changes.
   preview   Open the remote preview URL for a site in the browser.
   publish   Publish a site to make the current remote site version live.
   cms       Manage CMS collections.
@@ -132,7 +136,7 @@ Options:
   --api     Talizen API host. Defaults to https://talizen.com or TALIZEN_API_HOST.
   --web     Talizen web host for login. Defaults to https://talizen.com or TALIZEN_WEB_HOST.
   --site_id Site reference in <project_id>/<site_id> format.
-  --dir     Local site directory used by pull and sync.
+  --dir     Local site directory used by pull, push, and sync.
   --note    Optional publish note.`)
 }
 
@@ -317,6 +321,39 @@ func runSync(ctx context.Context, args []string) error {
 	}
 
 	return syncer.Run(ctx)
+}
+
+func runPush(ctx context.Context, args []string) error {
+	fs := flag.NewFlagSet("push", flag.ContinueOnError)
+	apiHost := fs.String("api", "", "Talizen API host")
+	siteID := fs.String("site_id", "", "project_id/site_id")
+	dir := fs.String("dir", ".", "local directory")
+	err := fs.Parse(args)
+	if err != nil {
+		return err
+	}
+
+	projectID, realSiteID, err := parseSiteRef(*siteID)
+	if err != nil {
+		return err
+	}
+
+	client, _, err := clientFromConfig(*apiHost)
+	if err != nil {
+		return err
+	}
+
+	syncer, err := NewSyncer(client, projectID, realSiteID, *dir)
+	if err != nil {
+		return err
+	}
+
+	if err := syncer.Push(ctx); err != nil {
+		return err
+	}
+
+	fmt.Printf("Pushed %s -> %s/%s\n", syncer.dir, projectID, realSiteID)
+	return nil
 }
 
 func runPreview(ctx context.Context, args []string) error {

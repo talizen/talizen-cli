@@ -52,18 +52,7 @@ func newClientID() string {
 }
 
 func (s *Syncer) Run(ctx context.Context) error {
-	err := os.MkdirAll(s.dir, 0o755)
-	if err != nil {
-		return fmt.Errorf("create sync dir: %w", err)
-	}
-
-	err = s.refreshRemote(ctx)
-	if err != nil {
-		return err
-	}
-
-	err = s.syncLocalSnapshot(ctx)
-	if err != nil {
+	if err := s.Push(ctx); err != nil {
 		return err
 	}
 
@@ -117,6 +106,20 @@ func (s *Syncer) Run(ctx context.Context) error {
 			})
 		}
 	}
+}
+
+func (s *Syncer) Push(ctx context.Context) error {
+	err := os.MkdirAll(s.dir, 0o755)
+	if err != nil {
+		return fmt.Errorf("create local dir: %w", err)
+	}
+
+	err = s.refreshRemote(ctx)
+	if err != nil {
+		return err
+	}
+
+	return s.syncLocalSnapshot(ctx)
 }
 
 func (s *Syncer) refreshRemote(ctx context.Context) error {
