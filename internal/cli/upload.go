@@ -97,17 +97,14 @@ func runUpload(ctx context.Context, args []string) error {
 	}
 
 	if *jsonOut {
-		return printJSON(pre)
+		return printJSON(map[string]any{
+			"file_url": pre.FileURL,
+		})
 	}
 	if strings.TrimSpace(pre.FileURL) != "" {
 		fmt.Println(pre.FileURL)
 		return nil
 	}
-	if strings.TrimSpace(pre.SitePath) != "" {
-		fmt.Println(pre.SitePath)
-		return nil
-	}
-	fmt.Println(pre.FilePath)
 	return nil
 }
 
