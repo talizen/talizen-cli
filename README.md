@@ -81,6 +81,27 @@ project_id    Project Name
 
 Use the `project_id/site_id` value with `pull`, `push`, and `sync`.
 
+## Create Project
+
+Create a new project:
+
+```bash
+talizen project create --name="My Project"
+```
+
+For local development:
+
+```bash
+talizen project create --api=http://localhost:8433 --name="My Project"
+```
+
+You can also create from an existing project or template when the backend allows it:
+
+```bash
+talizen project create --name="My Project" --from_id=<project_id>
+talizen project create --name="My Project" --tpl_id=<template_id>
+```
+
 ## Pull Site Code
 
 Download the current remote site files into a local directory:
@@ -203,7 +224,26 @@ talizen content update --site_id=<project_id>/<site_id> --collection=blogs --id=
 talizen content delete --site_id=<project_id>/<site_id> --collection=blogs --id=<content_id>
 ```
 
-`--data` can point to either a plain CMS content body or a full content object. A plain content body may include a business field named `body`. The CLI treats JSON as a full content object only when it includes wrapper fields such as `id`, `slug`, `content_app_id`, `json_schema`, `draft_body`, `status`, `sort`, or `tags`.
+`--data` can point to either a plain CMS content body or a full content object. A plain content body may include a business field named `body`. The CLI treats JSON as a full content object only when it includes wrapper fields such as `id`, `slug`, `content_app_id`, `json_schema`, `status`, `sort`, or `tags`.
+
+If your business JSON has a top-level `slug`, do not pass it as plain body JSON because `slug` is a content wrapper field. Either pass the slug as a flag and omit it from `--data`:
+
+```bash
+talizen content create --site_id=<project_id>/<site_id> --collection=prompts --data=./content-body.json --slug=typography-v02
+```
+
+Or use a full content object and put business fields under `body`:
+
+```json
+{
+  "slug": "typography-v02",
+  "body": {
+    "title": "Typography V.02",
+    "description": "100vh",
+    "tags": ["skill"]
+  }
+}
+```
 
 ## Manage Forms
 

@@ -271,7 +271,10 @@ Usage:
 Notes:
   Plain --data JSON is treated as the CMS content body, even when it contains a
   business field named "body". JSON is treated as a full content object only
-  when it includes fields such as id, slug, status, sort, tags, or draft_body.`)
+  when it includes fields such as id, slug, status, sort, or tags.
+  If your business JSON has a top-level slug, either pass it as --slug and omit
+  it from --data, or wrap business fields under body, for example:
+  {"slug":"hello-world","body":{"title":"Hello world","tags":["news"]}}`)
 }
 
 func runContentList(ctx context.Context, args []string) error {
@@ -1048,7 +1051,7 @@ func rawObjectHas(raw json.RawMessage, key string) bool {
 }
 
 func isFullContentObject(raw json.RawMessage) bool {
-	for _, key := range []string{"id", "slug", "content_app_id", "json_schema", "draft_body", "status", "sort", "tags"} {
+	for _, key := range []string{"id", "slug", "content_app_id", "json_schema", "status", "sort", "tags"} {
 		if rawObjectHas(raw, key) {
 			return true
 		}

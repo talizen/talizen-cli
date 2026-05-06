@@ -142,6 +142,12 @@ type ProjectListResponse struct {
 	List  []Project `json:"list"`
 }
 
+type CreateProjectRequest struct {
+	Name   string `json:"name"`
+	FromID string `json:"from_id,omitempty"`
+	TplID  int64  `json:"tpl_id,omitempty"`
+}
+
 func (c *Client) GetProjectList(ctx context.Context) (ProjectListResponse, error) {
 	var ret ProjectListResponse
 	err := c.do(ctx, http.MethodGet, "/api/u/project_list", nil, nil, &ret)
@@ -150,6 +156,16 @@ func (c *Client) GetProjectList(ctx context.Context) (ProjectListResponse, error
 	}
 
 	return ret, nil
+}
+
+func (c *Client) CreateProject(ctx context.Context, project CreateProjectRequest) (string, error) {
+	var ret IDResponse
+	err := c.do(ctx, http.MethodPost, "/api/u/project", nil, project, &ret)
+	if err != nil {
+		return "", err
+	}
+
+	return ret.ID, nil
 }
 
 type ContentApp struct {
@@ -174,7 +190,6 @@ type Content struct {
 	Tags         []string        `json:"tags,omitempty"`
 	Status       string          `json:"status,omitempty"`
 	Body         json.RawMessage `json:"body,omitempty"`
-	DraftBody    json.RawMessage `json:"draft_body,omitempty"`
 	Sort         int             `json:"sort,omitempty"`
 	CreatedAt    string          `json:"created_at,omitempty"`
 	UpdatedAt    string          `json:"updated_at,omitempty"`
