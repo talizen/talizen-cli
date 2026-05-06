@@ -62,6 +62,8 @@ func Run(ctx context.Context, args []string) error {
 		return runLogout(args[1:])
 	case "projects":
 		return runProjects(ctx, args[1:])
+	case "project":
+		return runProject(ctx, args[1:])
 	case "pull":
 		return runPull(ctx, args[1:])
 	case "push":
@@ -106,6 +108,7 @@ Usage:
   talizen login [--api=https://talizen.com] [--web=https://talizen.com]
   talizen logout
   talizen projects
+  talizen project create --name="My Project"
   talizen pull --site_id=<project_id>/<site_id> --dir=./mysite
   talizen push --site_id=<project_id>/<site_id> --dir=./mysite
   talizen sync --site_id=<project_id>/<site_id> --dir=./mysite
@@ -121,6 +124,7 @@ Commands:
   login     Authenticate this machine with Talizen and save a CLI token.
   logout    Remove the saved CLI token and API host configuration.
   projects  List available projects and sites. Use project_id/site_id with site commands.
+  project   Manage projects.
   pull      Download the current remote site files into a local directory.
   push      Push the current local directory snapshot to the remote site.
   sync      Watch mode: push the current snapshot, then keep listening for local changes.
@@ -135,6 +139,9 @@ Commands:
 Options:
   --api     Talizen API host. Defaults to https://talizen.com or TALIZEN_API_HOST.
   --web     Talizen web host for login. Defaults to https://talizen.com or TALIZEN_WEB_HOST.
+  --name    Project name used by project create.
+  --from_id Existing project id to copy when creating a project.
+  --tpl_id  Template id to use when creating a project.
   --site_id Site reference in <project_id>/<site_id> format.
   --dir     Local site directory used by pull, push, and sync.
   --note    Optional publish note.`)
@@ -224,6 +231,10 @@ func runLogout(args []string) error {
 }
 
 func runProjects(ctx context.Context, args []string) error {
+	if len(args) > 0 && args[0] == "create" {
+		return runProjectCreate(ctx, args[1:])
+	}
+
 	fs := flag.NewFlagSet("projects", flag.ContinueOnError)
 	apiHost := fs.String("api", "", "Talizen API host")
 	err := fs.Parse(args)
@@ -248,6 +259,56 @@ func runProjects(ctx context.Context, args []string) error {
 		}
 	}
 
+	return nil
+}
+
+func runProject(ctx context.Context, args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("project requires a subcommand: create")
+	}
+
+	switch args[0] {
+	case "create":
+		return runProjectCreate(ctx, args[1:])
+	default:
+		return fmt.Errorf("unknown project subcommand: %s", args[0])
+	}
+}
+
+func runProjectCreate(ctx context.Context, args []string) error {
+	fs := flag.NewFlagSet("project create", flag.ContinueOnError)
+	apiHost := fs.String("api", "", "Talizen API host")
+	name := fs.String("name", "", "project name")
+	fromID := fs.String("from_id", "", "existing project id to copy")
+	tplID := fs.Int64("tpl_id", 0, "template id to use")
+	err := fs.Parse(args)
+	if err != nil {
+		return err
+	}
+	if fs.NArg() != 0 {
+		return fmt.Errorf("project create does not accept positional arguments; use --name=<project_name>")
+	}
+
+	projectName := strings.TrimSpace(*name)
+	if projectName == "" {
+		return fmt.Errorf("project create requires --name")
+	}
+
+	client, _, err := clientFromConfig(*apiHost)
+	if err != nil {
+		return err
+	}
+
+	id, err := client.CreateProject(ctx, talizen.CreateProjectRequest{
+		Name:   projectName,
+		FromID: strings.TrimSpace(*fromID),
+		TplID:  *tplID,
+	})
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Created project %s\t%s\n", id, projectName)
 	return nil
 }
 
