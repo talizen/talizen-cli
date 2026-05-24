@@ -118,6 +118,49 @@ talizen pull --api=http://localhost:8433 --site_id=<project_id>/<site_id> --dir=
 
 The command writes remote files such as `/page/...`, `/component/...`, and `talizen.config.ts` into the target directory.
 
+## Local Vite Preview
+
+Talizen projects pulled by the CLI usually do not have their own `package.json`
+or `node_modules`. The local preview plugin therefore uses Vite only for local
+file serving and TSX transpilation; third-party packages continue to resolve
+through the Talizen import map, matching the Web editor preview model.
+
+Install Vite in the local project folder:
+
+```bash
+cd ./mysite
+npm init -y
+npm install -D vite talizen-cli
+```
+
+Create `vite.config.mjs`:
+
+```js
+import { defineConfig } from 'vite'
+import talizen from 'talizen-cli/vite'
+
+export default defineConfig({
+  plugins: [
+    talizen({
+      apiHost: 'https://talizen.com',
+      projectId: '<project_id>',
+      // token: process.env.TALIZEN_TOKEN,
+    }),
+  ],
+})
+```
+
+Run it:
+
+```bash
+npx vite --host 0.0.0.0
+```
+
+The plugin maps `/page/Index.tsx` to `/`, `/page/About.tsx` to `/about`, injects
+`talizen.config.ts` import-map entries, loads `/index.css` through the Tailwind
+browser runtime, proxies local `/api/*` requests to `apiHost`, and calls page
+`getServerSideProps()` in the browser for a preview-only first render.
+
 ## Push Local Changes
 
 Push the current local directory snapshot to Talizen and exit:
@@ -325,8 +368,9 @@ Talizen, list projects and sites, pull remote site files into a local directory,
 push local files back to Talizen, watch local files for realtime sync, open the
 remote preview, and publish a site.
 
-It does not render sites locally. Rendering, CMS, assets, and realtime preview
-are handled by the Talizen backend and web app.
+The CLI commands still use the Talizen backend and web app for the canonical
+preview. The Vite plugin is a local development helper and intentionally does
+not implement full production SSR.
 
 ```bash
 talizen login [--api=https://talizen.com] [--web=https://talizen.com]
