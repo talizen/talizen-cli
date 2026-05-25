@@ -38,13 +38,13 @@ Install Vite and the CLI package in that local folder:
 
 ```bash
 npm init -y
-npm install -D vite talizen-cli
+npm install -D vite esbuild talizen-cli
 ```
 
 For local CLI development, use the checkout path instead:
 
 ```bash
-npm install -D vite
+npm install -D vite esbuild
 npm install -D /Users/bysir/dev/bysir/talizen-cli
 ```
 
@@ -94,11 +94,21 @@ the same auth as the CLI.
 npx vite --host 0.0.0.0
 ```
 
+Local file changes are delivered through Vite HMR as a Talizen runtime update.
+The browser keeps the same page and the runtime re-imports the current page
+module with a fresh timestamp, then re-renders the React root. This avoids a
+full page reload. It is not yet equivalent to React Fast Refresh, so component
+state is not guaranteed to be preserved.
+
 Open the printed local URL, usually:
 
 ```text
 http://localhost:5173/
 ```
+
+The CLI passes `--preview-port` to Vite as the preferred port. It does not force
+strict port binding, so if `5173` is already occupied, Vite automatically tries
+the next available port and prints the real local URL.
 
 ## Routing
 
@@ -124,7 +134,7 @@ first available page.
 
 The plugin:
 
-- injects the Talizen system import map
+- injects the Talizen system import map provided by server system info
 - merges `talizen.config.ts` `importMap.imports`
 - injects `customCode.head`, `customCode.bodyStart`, and `customCode.bodyEnd`
 - loads `/index.css` through the Tailwind browser runtime
@@ -162,7 +172,7 @@ the canonical remote preview that matches Talizen production behavior.
 talizen pull --site_id=<project_id>/<site_id> --dir=./mysite
 cd ./mysite
 npm init -y
-npm install -D vite talizen-cli
+npm install -D vite esbuild talizen-cli
 cat > vite.config.mjs <<'EOF'
 import { defineConfig } from 'vite'
 import talizen from 'talizen-cli/vite'

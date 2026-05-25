@@ -18,7 +18,8 @@ export type TalizenVitePluginOptions = {
    */
   token?: string
   /**
-   * Extra or overriding import map entries.
+   * Platform import map entries. `talizen dev` fills this from server system info.
+   * Manually configured entries override the built-in fallback when no server map is provided.
    */
   importMap?: Record<string, string>
 }

@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { transformWithEsbuild } from 'vite'
+import { transform as esbuildTransform } from 'esbuild'
+import { normalizeImportMapExternal } from './import-map.js'
 
 const modulePrefix = '/@talizen/module'
 const assetPrefix = '/@talizen/asset'
@@ -8,7 +9,7 @@ const runtimePrefix = '/@talizen/runtime'
 const pageExts = ['.tsx', '.ts', '.jsx', '.js']
 const sourceExts = new Set([...pageExts, '.css'])
 
-const defaultImportMap = {
+const fallbackImportMap = {
   react: 'https://esm.talizen.com/react@19.2.4?dev',
   'react/': 'https://esm.talizen.com/react@19.2.4&dev/',
   'react-dom': 'https://esm.talizen.com/react-dom@19.2.4?dev',
@@ -37,6 +38,9 @@ const escapeHtml = (s) => String(s)
   .replaceAll('"', '&quot;')
 
 const jsonScript = (value) => JSON.stringify(value).replaceAll('<', '\\u003c')
+
+const transformWithEsbuild = (source, filename, options) =>
+  esbuildTransform(source, { ...options, sourcefile: filename })
 
 const isRelativeSpecifier = (specifier) =>
   specifier.startsWith('./') || specifier.startsWith('../') || specifier.startsWith('/')
@@ -149,19 +153,12 @@ async function readIndexCss(projectRoot, config) {
   return fs.readFile(cssPath, 'utf8')
 }
 
-function normalizeImportMapExternal(specifier, url) {
-  if (!/^https?:\/\//i.test(url)) return url
-  if (specifier === 'react' || specifier.startsWith('react/') || specifier === 'react-dom' || specifier.startsWith('react-dom/')) {
-    return url
-  }
-  if (/[?&]external=/.test(url)) return url
-  return `${url}${url.includes('?') ? '&' : '?'}external=react,react-dom`
-}
-
 async function buildImportMap(projectRoot, options) {
   const config = await readSiteConfig(projectRoot)
   const userImports = config.importMap?.imports || {}
-  const imports = { ...defaultImportMap }
+  const imports = Object.keys(options.importMap || {}).length > 0
+    ? { ...options.importMap }
+    : { ...fallbackImportMap }
 
   for (const [specifier, url] of Object.entries(userImports)) {
     imports[specifier] = normalizeImportMapExternal(specifier, String(url))
@@ -300,35 +297,69 @@ export default css;
 }
 
 function renderRuntimeScript(entryFile, params, options) {
-  const entryURL = `${modulePrefix}?path=${encodeURIComponent(entryFile)}&t=${Date.now()}`
   const projectId = options.projectId || ''
+  const authHeaders = options.token ? { Authorization: `Bearer ${options.token}` } : {}
 
   return `
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import * as pageModule from ${JSON.stringify(entryURL)};
+import { createHotContext } from '/@vite/client';
+
+const talizenRuntimeHeaders = ${jsonScript(authHeaders)};
+const talizenRuntimeFetch = window.fetch.bind(window);
 
 window.TalizenConfig = {
-  baseUrl: window.location.origin + '/api/u/v2/project/' + ${JSON.stringify(projectId)}
+  baseUrl: window.location.origin + '/api/u/v2/project/' + ${JSON.stringify(projectId)},
+  headers: talizenRuntimeHeaders,
+  fetch(input, init = {}) {
+    const headers = new Headers(init.headers || {});
+    for (const [key, value] of Object.entries(talizenRuntimeHeaders)) {
+      if (!headers.has(key)) headers.set(key, value);
+    }
+    return talizenRuntimeFetch(input, { ...init, headers });
+  },
 };
 
-const Page = pageModule.default || pageModule.App;
 const rootEl = document.getElementById('root');
-let props = {};
+const root = createRoot(rootEl);
+let renderVersion = 0;
 
-if (!Page) {
-  throw new Error('Talizen page has no default export: ${entryFile}');
+async function loadPageModule() {
+  return import(${JSON.stringify(`${modulePrefix}?path=${encodeURIComponent(entryFile)}`)} + '&t=' + Date.now());
 }
 
-if (typeof pageModule.getServerSideProps === 'function') {
-  const result = await pageModule.getServerSideProps({
-    query: Object.fromEntries(new URLSearchParams(window.location.search)),
-    params: ${jsonScript(params)},
+async function renderPage() {
+  const version = ++renderVersion;
+  const pageModule = await loadPageModule();
+  if (version !== renderVersion) return;
+
+  const Page = pageModule.default || pageModule.App;
+  let props = {};
+
+  if (!Page) {
+    throw new Error('Talizen page has no default export: ${entryFile}');
+  }
+
+  if (typeof pageModule.getServerSideProps === 'function') {
+    const result = await pageModule.getServerSideProps({
+      query: Object.fromEntries(new URLSearchParams(window.location.search)),
+      params: ${jsonScript(params)},
+    });
+    props = result && result.props ? result.props : {};
+  }
+
+  root.render(React.createElement(Page, props));
+}
+
+const hot = createHotContext(${JSON.stringify(`${runtimePrefix}?entry=${encodeURIComponent(entryFile)}`)});
+
+await renderPage();
+
+hot.on('talizen:update', () => {
+  renderPage().catch((err) => {
+    console.error('[talizen vite] hot update failed', err);
   });
-  props = result && result.props ? result.props : {};
-}
-
-createRoot(rootEl).render(React.createElement(Page, props));
+});
 `
 }
 
@@ -375,12 +406,31 @@ export function talizen(options = {}) {
       projectRoot = path.resolve(options.root || config.root)
     },
     configureServer(server) {
+      const hmrTimers = new Map()
+      const sendTalizenUpdate = (file) => {
+        if (!file.startsWith(projectRoot)) return
+
+        const projectPath = normalizeProjectPath(path.relative(projectRoot, file))
+        const existing = hmrTimers.get(projectPath)
+        if (existing) clearTimeout(existing)
+
+        hmrTimers.set(projectPath, setTimeout(() => {
+          hmrTimers.delete(projectPath)
+          server.ws.send({
+            type: 'custom',
+            event: 'talizen:update',
+            data: {
+              file: projectPath,
+              time: Date.now(),
+            },
+          })
+        }, 80))
+      }
+
       server.watcher.add(path.join(projectRoot, '**/*'))
-      server.watcher.on('change', (file) => {
-        if (file.startsWith(projectRoot)) {
-          server.ws.send({ type: 'full-reload' })
-        }
-      })
+      server.watcher.on('change', sendTalizenUpdate)
+      server.watcher.on('add', sendTalizenUpdate)
+      server.watcher.on('unlink', sendTalizenUpdate)
 
       server.middlewares.use(async (req, res, next) => {
         try {
@@ -397,6 +447,7 @@ export function talizen(options = {}) {
             }
             headers.set('host', new URL(apiHost).host)
             if (options.token) {
+              headers.delete('cookie')
               headers.set('authorization', `Bearer ${options.token}`)
             }
 
@@ -412,7 +463,11 @@ export function talizen(options = {}) {
 
             res.statusCode = upstream.status
             upstream.headers.forEach((value, key) => {
-              if (key.toLowerCase() === 'content-encoding') return
+              const lowerKey = key.toLowerCase()
+              if (lowerKey === 'content-encoding') return
+              if (lowerKey === 'content-length') return
+              if (lowerKey === 'transfer-encoding') return
+              if (lowerKey === 'connection') return
               res.setHeader(key, value)
             })
             const data = Buffer.from(await upstream.arrayBuffer())

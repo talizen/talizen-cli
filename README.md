@@ -2,7 +2,7 @@
 
 Talizen CLI is a thin local bridge for syncing site code between a local directory and Talizen.
 
-The CLI does not render sites locally. Talizen remains responsible for rendering, CMS, assets, and the realtime preview environment.
+The CLI can also run a local Vite preview for pulled Talizen projects. Talizen remains responsible for cloud rendering, CMS, assets, and the realtime preview environment.
 
 ## Install
 
@@ -123,14 +123,16 @@ The command writes remote files such as `/page/...`, `/component/...`, and `tali
 Talizen projects pulled by the CLI usually do not have their own `package.json`
 or `node_modules`. The local preview plugin therefore uses Vite only for local
 file serving and TSX transpilation; third-party packages continue to resolve
-through the Talizen import map, matching the Web editor preview model.
+through the Talizen import map, matching the Web editor preview model. In
+`talizen dev`, the CLI loads the platform import map from server system info and
+passes it to the Vite plugin; the plugin's local map is only a fallback.
 
 Install Vite in the local project folder:
 
 ```bash
 cd ./mysite
 npm init -y
-npm install -D vite talizen-cli
+npm install -D vite esbuild talizen-cli
 ```
 
 Create `vite.config.mjs`:
@@ -156,10 +158,12 @@ Run it:
 npx vite --host 0.0.0.0
 ```
 
-The plugin maps `/page/Index.tsx` to `/`, `/page/About.tsx` to `/about`, injects
-`talizen.config.ts` import-map entries, loads `/index.css` through the Tailwind
-browser runtime, proxies local `/api/*` requests to `apiHost`, and calls page
-`getServerSideProps()` in the browser for a preview-only first render.
+The plugin maps `/page/Index.tsx` to `/`, `/page/About.tsx` to `/about`, starts
+from the platform import map, merges `talizen.config.ts` import-map entries,
+loads `/index.css` through the Tailwind browser runtime, proxies local `/api/*`
+requests to `apiHost`, calls page `getServerSideProps()` in the browser for a
+preview-only first render, and uses Vite HMR to re-import the current page
+module after local file changes without a full page reload.
 
 ## Push Local Changes
 
@@ -196,6 +200,57 @@ talizen sync --api=http://localhost:8433 --site_id=<project_id>/<site_id> --dir=
 automatically listens for local file changes. When a file is changed locally,
 the CLI calls the existing Talizen `site_action` API and updates the remote site
 in realtime. The command also prints the remote preview URL when available.
+
+## Local Web Editor Bidirectional Sync
+
+Run local files and the online Talizen editor against the same cloud realtime
+files:
+
+```bash
+talizen dev --site_id=<project_id>/<site_id> --dir=./mysite
+```
+
+For local backend or web development:
+
+```bash
+talizen dev --api=http://localhost:8433 --web=http://localhost:5173 --site_id=<project_id>/<site_id> --dir=./mysite
+```
+
+The command prints the online Web editor URL, pushes local file changes to
+Talizen, and listens to the existing WebSocket collaboration channel so editor
+changes are written back to the local directory. MVP conflict handling is last
+write wins.
+
+`dev` also starts a local Vite preview by default:
+
+```text
+  VITE v8.0.14  ready in 529 ms
+  ➜  Local:   http://localhost:5173/
+Local Vite:  started (preferred http://localhost:5173; use the Vite Local URL above)
+```
+
+Use `--preview-port` or `--preview-host` to change the preferred local preview
+address. If that port is occupied, Vite uses its normal auto-port behavior and
+prints the actual URL in the terminal:
+
+```bash
+talizen dev --site_id=<project_id>/<site_id> --dir=./mysite --preview-port=5174
+```
+
+Disable the local preview when you only want file sync:
+
+```bash
+talizen dev --site_id=<project_id>/<site_id> --dir=./mysite --no-preview
+```
+
+The preview uses the bundled `talizen-cli/vite` plugin. If the site directory
+has `node_modules/.bin/vite`, that local Vite is used; otherwise the CLI starts
+a hidden temporary Vite runtime under `.talizen/` and installs `vite` plus
+`esbuild` there.
+
+Local file changes are pushed through Vite HMR as a React root re-render. This
+avoids a browser-level refresh, but it is not yet full React Fast Refresh and
+does not guarantee component state preservation.
 
 ## Open Preview
 
@@ -379,6 +434,7 @@ talizen projects [--api=https://talizen.com]
 talizen pull --site_id=<project_id>/<site_id> --dir=./mysite [--api=https://talizen.com]
 talizen push --site_id=<project_id>/<site_id> --dir=./mysite [--api=https://talizen.com]
 talizen sync --site_id=<project_id>/<site_id> --dir=./mysite [--api=https://talizen.com]
+talizen dev --site_id=<project_id>/<site_id> --dir=./mysite [--api=https://talizen.com] [--web=https://talizen.com]
 talizen preview --site_id=<project_id>/<site_id> [--api=https://talizen.com]
 talizen publish --site_id=<project_id>/<site_id> [--api=https://talizen.com] [--note=<note>]
 talizen cms collections --site_id=<project_id>/<site_id> [--api=https://talizen.com]
@@ -399,6 +455,7 @@ Command meanings:
 - `pull`: Download the current remote site files into a local directory.
 - `push`: Push the current local directory snapshot to the remote site.
 - `sync`: Watch mode; push the current snapshot, then keep listening for local changes.
+- `dev`: Bidirectionally sync local files with cloud realtime files and the online Web editor.
 - `preview`: Open the remote preview URL for a site in the browser.
 - `publish`: Publish a site to make the current remote site version live.
 - `cms`: Manage CMS collections.

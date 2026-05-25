@@ -462,7 +462,14 @@ func contentRequestBody(content Content, publish bool) (map[string]any, error) {
 }
 
 type SystemInfo struct {
-	SelfAPIHost string `json:"self_api_host"`
+	SelfAPIHost  string       `json:"self_api_host"`
+	RenderConfig RenderConfig `json:"render_config"`
+}
+
+type RenderConfig struct {
+	ImportMap       map[string]string `json:"import_map"`
+	DevImportMap    map[string]string `json:"dev_import_map"`
+	IgnoreImportMap []string          `json:"ignore_import_map"`
 }
 
 func (c *Client) GetSystemInfo(ctx context.Context) (SystemInfo, error) {
