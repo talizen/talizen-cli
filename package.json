@@ -35,9 +35,13 @@
     "node": ">=18"
   },
   "peerDependencies": {
+    "esbuild": ">=0.20",
     "vite": ">=5"
   },
   "peerDependenciesMeta": {
+    "esbuild": {
+      "optional": true
+    },
     "vite": {
       "optional": true
     }

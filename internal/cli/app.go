@@ -70,6 +70,8 @@ func Run(ctx context.Context, args []string) error {
 		return runPush(ctx, args[1:])
 	case "sync":
 		return runSync(ctx, args[1:])
+	case "dev":
+		return runDev(ctx, args[1:])
 	case "preview":
 		return runPreview(ctx, args[1:])
 	case "publish":
@@ -98,11 +100,8 @@ func printUsage() {
 
 Talizen CLI is a local bridge for Talizen site code. It can authenticate with
 Talizen, list projects and sites, pull remote site files into a local directory,
-push local files back to Talizen, watch local files for realtime sync, open the
-remote preview, and publish a site.
-
-It does not render sites locally. Rendering, CMS, assets, and realtime preview
-are handled by the Talizen backend and web app.
+push local files back to Talizen, watch local files for realtime sync, run a
+local Vite preview, open the remote preview, and publish a site.
 
 Usage:
   talizen login [--api=https://talizen.com] [--web=https://talizen.com]
@@ -112,6 +111,7 @@ Usage:
   talizen pull --site_id=<project_id>/<site_id> --dir=./mysite
   talizen push --site_id=<project_id>/<site_id> --dir=./mysite
   talizen sync --site_id=<project_id>/<site_id> --dir=./mysite
+  talizen dev --site_id=<project_id>/<site_id> --dir=./mysite [--preview-port=5173]
   talizen preview --site_id=<project_id>/<site_id>
   talizen publish --site_id=<project_id>/<site_id>
   talizen cms collections --site_id=<project_id>/<site_id>
@@ -128,6 +128,7 @@ Commands:
   pull      Download the current remote site files into a local directory.
   push      Push the current local directory snapshot to the remote site.
   sync      Watch mode: push the current snapshot, then keep listening for local changes.
+  dev       Bidirectionally sync local files with the Web editor and run Vite preview.
   preview   Open the remote preview URL for a site in the browser.
   publish   Publish a site to make the current remote site version live.
   cms       Manage CMS collections.
@@ -143,7 +144,10 @@ Options:
   --from_id Existing project id to copy when creating a project.
   --tpl_id  Template id to use when creating a project.
   --site_id Site reference in <project_id>/<site_id> format.
-  --dir     Local site directory used by pull, push, and sync.
+  --dir     Local site directory used by pull, push, sync, and dev.
+  --no-preview Disable the local Vite preview started by dev.
+  --preview-host Local Vite preview host. Defaults to localhost.
+  --preview-port Preferred local Vite preview port. Defaults to 5173.
   --note    Optional publish note.`)
 }
 
