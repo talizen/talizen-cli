@@ -18,6 +18,11 @@ func init() {
 }
 
 func Run(ctx context.Context, args []string) error {
+	if hasVersionArg(args) {
+		fmt.Fprintln(os.Stdout, version)
+		return nil
+	}
+
 	cmd := newRootCommand(ctx, args)
 	cmd.SetArgs(args)
 	cmd.SetOut(os.Stdout)
@@ -25,7 +30,17 @@ func Run(ctx context.Context, args []string) error {
 	return cmd.Execute()
 }
 
+func hasVersionArg(args []string) bool {
+	for _, arg := range args {
+		if arg == "-v" || arg == "--version" {
+			return true
+		}
+	}
+	return false
+}
+
 func newRootCommand(ctx context.Context, rawArgs []string) *cobra.Command {
+	var showVersion bool
 	root := &cobra.Command{
 		Use:           "talizen",
 		Short:         "Local bridge for Talizen site code",
@@ -35,9 +50,14 @@ func newRootCommand(ctx context.Context, rawArgs []string) *cobra.Command {
 pulls remote site files into a local directory, pushes local changes back to
 Talizen, watches local files for sync, opens previews, and publishes sites.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if showVersion {
+				fmt.Fprintln(cmd.OutOrStdout(), version)
+				return nil
+			}
 			return cmd.Help()
 		},
 	}
+	root.PersistentFlags().BoolVarP(&showVersion, "version", "v", false, "Print the installed CLI version.")
 
 	root.AddCommand(loginCommand(ctx, rawArgs))
 	root.AddCommand(legacyCommand(ctx, rawArgs, []string{"logout"}, "logout", "Remove the saved CLI token and API host configuration.", func(ctx context.Context, args []string) error {
