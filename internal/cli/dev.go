@@ -49,7 +49,6 @@ type wsFileUpdateData struct {
 
 func runDev(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("dev", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	webHost := fs.String("web", "", "Talizen web host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	dir := fs.String("dir", ".", "local Talizen project directory")
@@ -66,7 +65,7 @@ func runDev(ctx context.Context, args []string) error {
 		return err
 	}
 
-	client, cfg, err := clientFromConfig(*apiHost)
+	client, cfg, err := clientFromConfig()
 	if err != nil {
 		return err
 	}

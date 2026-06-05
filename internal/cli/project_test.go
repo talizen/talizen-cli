@@ -45,10 +45,10 @@ func TestRunProjectCreate(t *testing.T) {
 		_, _ = w.Write([]byte(`{"id":"project_123"}`))
 	}))
 	defer server.Close()
+	t.Setenv("TALIZEN_API_HOST", server.URL)
 
 	output := captureStdout(t, func() {
 		err = runProjectCreate(context.Background(), []string{
-			"--api=" + server.URL,
 			"--name=  Test Project  ",
 			"--from_id=source_123",
 			"--tpl_id=42",

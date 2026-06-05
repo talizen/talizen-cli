@@ -68,7 +68,6 @@ func runCMSCollection(ctx context.Context, args []string) error {
 
 func runCMSCollections(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("cms collections", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	limit := fs.Int("limit", 100, "result limit")
 	offset := fs.Int("offset", 0, "result offset")
@@ -80,7 +79,7 @@ func runCMSCollections(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
@@ -95,7 +94,6 @@ func runCMSCollections(ctx context.Context, args []string) error {
 
 func runCMSCollectionGet(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("cms collection get", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	id := fs.String("id", "", "collection id")
 	key := fs.String("key", "", "collection key")
@@ -107,7 +105,7 @@ func runCMSCollectionGet(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
@@ -129,7 +127,6 @@ func runCMSCollectionGet(ctx context.Context, args []string) error {
 
 func runCMSCollectionCreate(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("cms collection create", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	key := fs.String("key", "", "collection key")
 	name := fs.String("name", "", "collection name")
@@ -151,7 +148,7 @@ func runCMSCollectionCreate(ctx context.Context, args []string) error {
 		return fmt.Errorf("--key and --name are required unless provided by --schema")
 	}
 
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
@@ -166,7 +163,6 @@ func runCMSCollectionCreate(ctx context.Context, args []string) error {
 
 func runCMSCollectionUpdate(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("cms collection update", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	id := fs.String("id", "", "collection id")
 	key := fs.String("key", "", "existing collection key")
@@ -182,7 +178,7 @@ func runCMSCollectionUpdate(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
@@ -205,7 +201,6 @@ func runCMSCollectionUpdate(ctx context.Context, args []string) error {
 
 func runCMSCollectionDelete(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("cms collection delete", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	id := fs.String("id", "", "collection id")
 	key := fs.String("key", "", "collection key")
@@ -217,7 +212,7 @@ func runCMSCollectionDelete(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
@@ -279,7 +274,6 @@ Notes:
 
 func runContentList(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("content list", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	collection := fs.String("collection", "", "collection key or id")
 	limit := fs.Int("limit", 20, "result limit")
@@ -295,7 +289,7 @@ func runContentList(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
@@ -327,7 +321,6 @@ func runContentList(ctx context.Context, args []string) error {
 
 func runContentGet(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("content get", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	collection := fs.String("collection", "", "collection key or id")
 	id := fs.String("id", "", "content id")
@@ -343,7 +336,7 @@ func runContentGet(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
@@ -365,7 +358,6 @@ func runContentGet(ctx context.Context, args []string) error {
 
 func runContentCreate(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("content create", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	collection := fs.String("collection", "", "collection key or id")
 	dataPath := fs.String("data", "", "content JSON file")
@@ -388,7 +380,7 @@ func runContentCreate(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
@@ -408,7 +400,6 @@ func runContentCreate(ctx context.Context, args []string) error {
 
 func runContentUpdate(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("content update", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	collection := fs.String("collection", "", "collection key or id")
 	id := fs.String("id", "", "content id")
@@ -435,7 +426,7 @@ func runContentUpdate(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
@@ -454,7 +445,6 @@ func runContentUpdate(ctx context.Context, args []string) error {
 
 func runContentDelete(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("content delete", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	collection := fs.String("collection", "", "collection key or id")
 	id := fs.String("id", "", "content id")
@@ -469,7 +459,7 @@ func runContentDelete(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
@@ -538,7 +528,6 @@ Notes:
 
 func runFormList(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("form list", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	limit := fs.Int("limit", 100, "result limit")
 	offset := fs.Int("offset", 0, "result offset")
@@ -550,7 +539,7 @@ func runFormList(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
@@ -565,7 +554,6 @@ func runFormList(ctx context.Context, args []string) error {
 
 func runFormGet(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("form get", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	id := fs.String("id", "", "form id")
 	key := fs.String("key", "", "form key")
@@ -577,7 +565,7 @@ func runFormGet(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
@@ -596,7 +584,6 @@ func runFormGet(ctx context.Context, args []string) error {
 
 func runFormCreate(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("form create", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	key := fs.String("key", "", "form key")
 	name := fs.String("name", "", "form name")
@@ -619,7 +606,7 @@ func runFormCreate(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
@@ -634,7 +621,6 @@ func runFormCreate(ctx context.Context, args []string) error {
 
 func runFormUpdate(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("form update", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	id := fs.String("id", "", "form id")
 	key := fs.String("key", "", "existing form key")
@@ -651,7 +637,7 @@ func runFormUpdate(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
@@ -673,7 +659,6 @@ func runFormUpdate(ctx context.Context, args []string) error {
 
 func runFormDelete(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("form delete", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	id := fs.String("id", "", "form id")
 	key := fs.String("key", "", "form key")
@@ -685,7 +670,7 @@ func runFormDelete(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
@@ -703,7 +688,6 @@ func runFormDelete(ctx context.Context, args []string) error {
 
 func runFormLogs(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("form logs", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	id := fs.String("id", "", "form id")
 	key := fs.String("key", "", "form key")
@@ -717,7 +701,7 @@ func runFormLogs(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
@@ -750,7 +734,6 @@ func runFormLog(ctx context.Context, args []string) error {
 
 func runFormLogGet(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("form log get", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	id := fs.String("id", "", "form id")
 	key := fs.String("key", "", "form key")
@@ -766,7 +749,7 @@ func runFormLogGet(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
@@ -784,7 +767,6 @@ func runFormLogGet(ctx context.Context, args []string) error {
 
 func runFormLogDelete(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("form log delete", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	id := fs.String("id", "", "form id")
 	key := fs.String("key", "", "form key")
@@ -800,7 +782,7 @@ func runFormLogDelete(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
@@ -818,7 +800,6 @@ func runFormLogDelete(ctx context.Context, args []string) error {
 
 func runFormSubmit(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("form submit", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	key := fs.String("key", "", "form key")
 	dataPath := fs.String("data", "", "form payload JSON file")
@@ -854,7 +835,7 @@ func runFormSubmit(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}

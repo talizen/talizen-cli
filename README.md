@@ -36,7 +36,7 @@ talizen login
 For local development:
 
 ```bash
-talizen login --api=http://localhost:8433 --web=http://localhost:5173
+TALIZEN_API_HOST=http://localhost:8433 talizen login --web=http://localhost:5173
 ```
 
 The command opens a browser authorization page. After authorization succeeds, the CLI stores the token in:
@@ -58,18 +58,18 @@ Remove the saved CLI config:
 talizen logout
 ```
 
-This clears the saved token and any saved API host. The next command will use the production default unless you pass `--api` or set `TALIZEN_API_HOST`.
+This clears the saved token and any saved API host. The next command will use the production default unless you set `TALIZEN_API_HOST`.
 
 ## List Projects
 
 ```bash
-talizen projects
+talizen project list
 ```
 
 For local development:
 
 ```bash
-talizen projects --api=http://localhost:8433
+TALIZEN_API_HOST=http://localhost:8433 talizen project list
 ```
 
 Example output:
@@ -92,7 +92,7 @@ talizen project create --name="My Project"
 For local development:
 
 ```bash
-talizen project create --api=http://localhost:8433 --name="My Project"
+TALIZEN_API_HOST=http://localhost:8433 talizen project create --name="My Project"
 ```
 
 You can also create from an existing project or template when the backend allows it:
@@ -113,7 +113,7 @@ talizen pull --site_id=<project_id>/<site_id> --dir=./mysite
 For local development:
 
 ```bash
-talizen pull --api=http://localhost:8433 --site_id=<project_id>/<site_id> --dir=./mysite
+TALIZEN_API_HOST=http://localhost:8433 talizen pull --site_id=<project_id>/<site_id> --dir=./mysite
 ```
 
 The command writes remote files such as `/page/...`, `/component/...`, and `talizen.config.ts` into the target directory.
@@ -176,7 +176,7 @@ talizen push --site_id=<project_id>/<site_id> --dir=./mysite
 For local development:
 
 ```bash
-talizen push --api=http://localhost:8433 --site_id=<project_id>/<site_id> --dir=./mysite
+TALIZEN_API_HOST=http://localhost:8433 talizen push --site_id=<project_id>/<site_id> --dir=./mysite
 ```
 
 The CLI scans the local directory and calls the existing Talizen `site_action`
@@ -193,7 +193,7 @@ talizen sync --site_id=<project_id>/<site_id> --dir=./mysite
 For local development:
 
 ```bash
-talizen sync --api=http://localhost:8433 --site_id=<project_id>/<site_id> --dir=./mysite
+TALIZEN_API_HOST=http://localhost:8433 talizen sync --site_id=<project_id>/<site_id> --dir=./mysite
 ```
 
 `sync` first pushes the current local snapshot, then keeps running and
@@ -213,7 +213,7 @@ talizen dev --site_id=<project_id>/<site_id> --dir=./mysite
 For local backend or web development:
 
 ```bash
-talizen dev --api=http://localhost:8433 --web=http://localhost:5173 --site_id=<project_id>/<site_id> --dir=./mysite
+TALIZEN_API_HOST=http://localhost:8433 talizen dev --web=http://localhost:5173 --site_id=<project_id>/<site_id> --dir=./mysite
 ```
 
 The command prints the online Web editor URL, pushes local file changes to
@@ -263,7 +263,7 @@ talizen preview --site_id=<project_id>/<site_id>
 For local development:
 
 ```bash
-talizen preview --api=http://localhost:8433 --site_id=<project_id>/<site_id>
+TALIZEN_API_HOST=http://localhost:8433 talizen preview --site_id=<project_id>/<site_id>
 ```
 
 ## Publish Site
@@ -283,7 +283,7 @@ talizen publish --site_id=<project_id>/<site_id> --note="Update homepage copy"
 For local development:
 
 ```bash
-talizen publish --api=http://localhost:8433 --site_id=<project_id>/<site_id>
+TALIZEN_API_HOST=http://localhost:8433 talizen publish --site_id=<project_id>/<site_id>
 ```
 
 ## Manage CMS Collections
@@ -428,16 +428,16 @@ preview. The Vite plugin is a local development helper and intentionally does
 not implement full production SSR.
 
 ```bash
-talizen login [--api=https://talizen.com] [--web=https://talizen.com]
+talizen login [--web=https://talizen.com]
 talizen logout
-talizen projects [--api=https://talizen.com]
-talizen pull --site_id=<project_id>/<site_id> --dir=./mysite [--api=https://talizen.com]
-talizen push --site_id=<project_id>/<site_id> --dir=./mysite [--api=https://talizen.com]
-talizen sync --site_id=<project_id>/<site_id> --dir=./mysite [--api=https://talizen.com]
-talizen dev --site_id=<project_id>/<site_id> --dir=./mysite [--api=https://talizen.com] [--web=https://talizen.com]
-talizen preview --site_id=<project_id>/<site_id> [--api=https://talizen.com]
-talizen publish --site_id=<project_id>/<site_id> [--api=https://talizen.com] [--note=<note>]
-talizen cms collections --site_id=<project_id>/<site_id> [--api=https://talizen.com]
+talizen project list
+talizen pull --site_id=<project_id>/<site_id> --dir=./mysite
+talizen push --site_id=<project_id>/<site_id> --dir=./mysite
+talizen sync --site_id=<project_id>/<site_id> --dir=./mysite
+talizen dev --site_id=<project_id>/<site_id> --dir=./mysite [--web=https://talizen.com]
+talizen preview --site_id=<project_id>/<site_id>
+talizen publish --site_id=<project_id>/<site_id> [--note=<note>]
+talizen cms collections --site_id=<project_id>/<site_id>
 talizen cms collection create --site_id=<project_id>/<site_id> --key=<key> --name=<name> --schema=./schema.json
 talizen content list --site_id=<project_id>/<site_id> --collection=<key>
 talizen content create --site_id=<project_id>/<site_id> --collection=<key> --data=./content.json
@@ -451,7 +451,7 @@ Command meanings:
 
 - `login`: Authenticate this machine with Talizen and save a CLI token.
 - `logout`: Remove the saved CLI token and API host configuration.
-- `projects`: List available projects and sites. Use `project_id/site_id` with site commands.
+- `project`: List available projects and sites. Use `project_id/site_id` with site commands. Also supports `project create`.
 - `pull`: Download the current remote site files into a local directory.
 - `push`: Push the current local directory snapshot to the remote site.
 - `sync`: Watch mode; push the current snapshot, then keep listening for local changes.
