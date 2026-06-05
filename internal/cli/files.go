@@ -65,6 +65,58 @@ func writeRemoteFiles(root string, files []talizen.File) error {
 	return nil
 }
 
+func ensurePulledAgentsFile(root string, files []talizen.File, projectID string, siteID string, editorURL string) (bool, error) {
+	for _, file := range files {
+		if file.IsDir {
+			continue
+		}
+		if strings.TrimSpace(file.Path) == "/AGENTS.md" {
+			return false, nil
+		}
+	}
+
+	localPath, err := remotePathToLocal(root, "/AGENTS.md")
+	if err != nil {
+		return false, err
+	}
+	if _, err := os.Stat(localPath); err == nil {
+		return false, nil
+	} else if !os.IsNotExist(err) {
+		return false, fmt.Errorf("check AGENTS.md: %w", err)
+	}
+
+	body := pulledAgentsFileBody(projectID, siteID, editorURL)
+	if err := os.WriteFile(localPath, []byte(body), 0o644); err != nil {
+		return false, fmt.Errorf("write AGENTS.md: %w", err)
+	}
+
+	return true, nil
+}
+
+func pulledAgentsFileBody(projectID string, siteID string, editorURL string) string {
+	return fmt.Sprintf(`# Talizen Project Agent Notes
+
+This is a Talizen project pulled by the Talizen CLI.
+
+Before editing this project, read the Talizen skill. If the skill is not installed,
+install it from this manual:
+
+https://github.com/talizen/skills/blob/main/readme.md
+
+Project ID: %s
+Site ID: %s
+Editor URL: %s
+
+Use the Talizen CLI for ongoing maintenance:
+
+`+"```bash"+`
+talizen pull --site_id=%s/%s
+talizen push --site_id=%s/%s
+talizen sync --site_id=%s/%s
+`+"```"+`
+`, projectID, siteID, editorURL, projectID, siteID, projectID, siteID, projectID, siteID)
+}
+
 func shouldSkipLocalPath(root string, path string) bool {
 	rel, err := filepath.Rel(root, path)
 	if err != nil || rel == "." {

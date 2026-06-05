@@ -22,7 +22,6 @@ func runUpload(ctx context.Context, args []string) error {
 	}
 
 	fs := flag.NewFlagSet("upload", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	filePath := fs.String("file", "", "local file path")
 	name := fs.String("name", "", "uploaded file name")
@@ -66,7 +65,7 @@ func runUpload(ctx context.Context, args []string) error {
 		return err
 	}
 
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}

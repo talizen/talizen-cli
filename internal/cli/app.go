@@ -7,11 +7,12 @@ import (
 	"flag"
 	"fmt"
 	"net/url"
-	"os"
 	"os/exec"
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/spf13/viper"
 )
 
 const (
@@ -22,7 +23,7 @@ const (
 var version = "dev"
 
 func defaultAPIHost() string {
-	if v := strings.TrimSpace(os.Getenv("TALIZEN_API_HOST")); v != "" {
+	if v := strings.TrimSpace(viper.GetString("api_host")); v != "" {
 		return v
 	}
 
@@ -30,7 +31,7 @@ func defaultAPIHost() string {
 }
 
 func defaultWebHost(apiHost string) string {
-	if v := strings.TrimSpace(os.Getenv("TALIZEN_WEB_HOST")); v != "" {
+	if v := strings.TrimSpace(viper.GetString("web_host")); v != "" {
 		return v
 	}
 
@@ -49,115 +50,10 @@ func defaultWebHost(apiHost string) string {
 	return defaultWebHostValue
 }
 
-func Run(ctx context.Context, args []string) error {
-	if len(args) == 0 {
-		printUsage()
-		return nil
-	}
-
-	switch args[0] {
-	case "login":
-		return runLogin(ctx, args[1:])
-	case "logout":
-		return runLogout(args[1:])
-	case "projects":
-		return runProjects(ctx, args[1:])
-	case "project":
-		return runProject(ctx, args[1:])
-	case "pull":
-		return runPull(ctx, args[1:])
-	case "push":
-		return runPush(ctx, args[1:])
-	case "sync":
-		return runSync(ctx, args[1:])
-	case "dev":
-		return runDev(ctx, args[1:])
-	case "preview":
-		return runPreview(ctx, args[1:])
-	case "publish":
-		return runPublish(ctx, args[1:])
-	case "cms":
-		return runCMS(ctx, args[1:])
-	case "content":
-		return runContent(ctx, args[1:])
-	case "form":
-		return runForm(ctx, args[1:])
-	case "upload":
-		return runUpload(ctx, args[1:])
-	case "version":
-		fmt.Println(version)
-		return nil
-	case "help", "-h", "--help":
-		printUsage()
-		return nil
-	default:
-		return fmt.Errorf("unknown command: %s", args[0])
-	}
-}
-
-func printUsage() {
-	fmt.Println(`talizen cli
-
-Talizen CLI is a local bridge for Talizen site code. It can authenticate with
-Talizen, list projects and sites, pull remote site files into a local directory,
-push local files back to Talizen, watch local files for realtime sync, run a
-local Vite preview, open the remote preview, and publish a site.
-
-Usage:
-  talizen login [--api=https://talizen.com] [--web=https://talizen.com]
-  talizen logout
-  talizen projects
-  talizen project create --name="My Project"
-  talizen pull --site_id=<project_id>/<site_id> --dir=./mysite
-  talizen push --site_id=<project_id>/<site_id> --dir=./mysite
-  talizen sync --site_id=<project_id>/<site_id> --dir=./mysite
-  talizen dev --site_id=<project_id>/<site_id> --dir=./mysite [--preview-port=5173]
-  talizen preview --site_id=<project_id>/<site_id>
-  talizen publish --site_id=<project_id>/<site_id>
-  talizen cms collections --site_id=<project_id>/<site_id>
-  talizen content list --site_id=<project_id>/<site_id> --collection=<key>
-  talizen form list --site_id=<project_id>/<site_id>
-  talizen upload --site_id=<project_id>/<site_id> --file=./image.png
-  talizen version
-
-Commands:
-  login     Authenticate this machine with Talizen and save a CLI token.
-  logout    Remove the saved CLI token and API host configuration.
-  projects  List available projects and sites. Use project_id/site_id with site commands.
-  project   Manage projects.
-  pull      Download the current remote site files into a local directory.
-  push      Push the current local directory snapshot to the remote site.
-  sync      Watch mode: push the current snapshot, then keep listening for local changes.
-  dev       Bidirectionally sync local files with the Web editor and run Vite preview.
-  preview   Open the remote preview URL for a site in the browser.
-  publish   Publish a site to make the current remote site version live.
-  cms       Manage CMS collections.
-  content   Manage CMS content entries.
-  form      Manage forms and form submissions.
-  upload    Upload a local file as a Talizen site asset and print its URL.
-  version   Print the installed CLI version.
-
-Options:
-  --api     Talizen API host. Defaults to https://talizen.com or TALIZEN_API_HOST.
-  --web     Talizen web host for login. Defaults to https://talizen.com or TALIZEN_WEB_HOST.
-  --name    Project name used by project create.
-  --from_id Existing project id to copy when creating a project.
-  --tpl_id  Template id to use when creating a project.
-  --site_id Site reference in <project_id>/<site_id> format.
-  --dir     Local site directory used by pull, push, sync, and dev.
-  --no-preview Disable the local Vite preview started by dev.
-  --preview-host Local Vite preview host. Defaults to localhost.
-  --preview-port Preferred local Vite preview port. Defaults to 5173.
-  --note    Optional publish note.`)
-}
-
-func clientFromConfig(apiHost string) (*talizen.Client, Config, error) {
+func clientFromConfig() (*talizen.Client, Config, error) {
 	cfg, err := loadConfig()
 	if err != nil {
 		return nil, Config{}, err
-	}
-	if apiHost != "" {
-		cfg.APIHost = apiHost
 	}
 
 	return talizen.NewClient(cfg.APIHost, cfg.Token), cfg, nil
@@ -165,14 +61,13 @@ func clientFromConfig(apiHost string) (*talizen.Client, Config, error) {
 
 func runLogin(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("login", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	webHost := fs.String("web", "", "Talizen web host")
 	err := fs.Parse(args)
 	if err != nil {
 		return err
 	}
 
-	client, cfg, err := clientFromConfig(*apiHost)
+	client, cfg, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
@@ -234,19 +129,14 @@ func runLogout(args []string) error {
 	return nil
 }
 
-func runProjects(ctx context.Context, args []string) error {
-	if len(args) > 0 && args[0] == "create" {
-		return runProjectCreate(ctx, args[1:])
-	}
-
-	fs := flag.NewFlagSet("projects", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
+func runProjectList(ctx context.Context, args []string) error {
+	fs := flag.NewFlagSet("project", flag.ContinueOnError)
 	err := fs.Parse(args)
 	if err != nil {
 		return err
 	}
 
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
@@ -268,10 +158,12 @@ func runProjects(ctx context.Context, args []string) error {
 
 func runProject(ctx context.Context, args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("project requires a subcommand: create")
+		return runProjectList(ctx, args)
 	}
 
 	switch args[0] {
+	case "list":
+		return runProjectList(ctx, args[1:])
 	case "create":
 		return runProjectCreate(ctx, args[1:])
 	default:
@@ -281,7 +173,6 @@ func runProject(ctx context.Context, args []string) error {
 
 func runProjectCreate(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("project create", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	name := fs.String("name", "", "project name")
 	fromID := fs.String("from_id", "", "existing project id to copy")
 	tplID := fs.Int64("tpl_id", 0, "template id to use")
@@ -298,7 +189,7 @@ func runProjectCreate(ctx context.Context, args []string) error {
 		return fmt.Errorf("project create requires --name")
 	}
 
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
@@ -318,7 +209,6 @@ func runProjectCreate(ctx context.Context, args []string) error {
 
 func runPull(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("pull", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	dir := fs.String("dir", ".", "local directory")
 	err := fs.Parse(args)
@@ -331,7 +221,7 @@ func runPull(ctx context.Context, args []string) error {
 		return err
 	}
 
-	client, _, err := clientFromConfig(*apiHost)
+	client, cfg, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
@@ -346,8 +236,18 @@ func runPull(ctx context.Context, args []string) error {
 		return err
 	}
 
+	editorURL := siteEditorURL(defaultWebHost(cfg.APIHost), projectID, realSiteID)
+	createdAgents, err := ensurePulledAgentsFile(*dir, files.List, projectID, realSiteID, editorURL)
+	if err != nil {
+		return err
+	}
+
 	previewURL, _ := previewURL(ctx, client, realSiteID)
 	fmt.Printf("Pulled %d files into %s\n", len(files.List), *dir)
+	if createdAgents {
+		fmt.Printf("Generated AGENTS.md for Talizen agent context\n")
+	}
+	fmt.Printf("Editor: %s\n", editorURL)
 	if previewURL != "" {
 		fmt.Printf("Preview: %s\n", previewURL)
 	}
@@ -355,9 +255,12 @@ func runPull(ctx context.Context, args []string) error {
 	return nil
 }
 
+func siteEditorURL(webHost string, projectID string, siteID string) string {
+	return fmt.Sprintf("%s/editor/project/%s/site/%s", strings.TrimRight(webHost, "/"), url.PathEscape(projectID), url.PathEscape(siteID))
+}
+
 func runSync(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("sync", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	dir := fs.String("dir", ".", "local directory")
 	err := fs.Parse(args)
@@ -370,7 +273,7 @@ func runSync(ctx context.Context, args []string) error {
 		return err
 	}
 
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
@@ -390,7 +293,6 @@ func runSync(ctx context.Context, args []string) error {
 
 func runPush(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("push", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	dir := fs.String("dir", ".", "local directory")
 	err := fs.Parse(args)
@@ -403,7 +305,7 @@ func runPush(ctx context.Context, args []string) error {
 		return err
 	}
 
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
@@ -423,7 +325,6 @@ func runPush(ctx context.Context, args []string) error {
 
 func runPreview(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("preview", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	err := fs.Parse(args)
 	if err != nil {
@@ -435,7 +336,7 @@ func runPreview(ctx context.Context, args []string) error {
 		return err
 	}
 
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
@@ -454,7 +355,6 @@ func runPreview(ctx context.Context, args []string) error {
 
 func runPublish(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("publish", flag.ContinueOnError)
-	apiHost := fs.String("api", "", "Talizen API host")
 	siteID := fs.String("site_id", "", "project_id/site_id")
 	note := fs.String("note", "", "publish note")
 	err := fs.Parse(args)
@@ -471,7 +371,7 @@ func runPublish(ctx context.Context, args []string) error {
 		return err
 	}
 
-	client, _, err := clientFromConfig(*apiHost)
+	client, _, err := clientFromConfig()
 	if err != nil {
 		return err
 	}
