@@ -42,6 +42,9 @@ func loadConfig() (Config, error) {
 	if err != nil {
 		return Config{}, fmt.Errorf("parse config: %w", err)
 	}
+	if apiHost, ok := envAPIHost(); ok {
+		cfg.APIHost = apiHost
+	}
 	if cfg.APIHost == "" {
 		cfg.APIHost = defaultAPIHost()
 	}

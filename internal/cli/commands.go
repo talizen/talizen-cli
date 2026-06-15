@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -46,9 +47,11 @@ func newRootCommand(ctx context.Context, rawArgs []string) *cobra.Command {
 		Short:         "Local bridge for Talizen site code",
 		SilenceUsage:  true,
 		SilenceErrors: true,
-		Long: `Talizen CLI authenticates with Talizen, lists projects and sites,
+		Long: fmt.Sprintf(`Talizen CLI authenticates with Talizen, lists projects and sites,
 pulls remote site files into a local directory, pushes local changes back to
-Talizen, watches local files for sync, opens previews, and publishes sites.`,
+Talizen, watches local files for sync, opens previews, and publishes sites.
+
+Current API host: %s`, helpAPIHost()),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if showVersion {
 				fmt.Fprintln(cmd.OutOrStdout(), version)
@@ -83,6 +86,15 @@ Talizen, watches local files for sync, opens previews, and publishes sites.`,
 	})
 
 	return root
+}
+
+func helpAPIHost() string {
+	cfg, err := loadConfig()
+	if err == nil && strings.TrimSpace(cfg.APIHost) != "" {
+		return strings.TrimSpace(cfg.APIHost)
+	}
+
+	return defaultAPIHost()
 }
 
 func legacyCommand(ctx context.Context, rawArgs []string, path []string, use string, short string, run func(context.Context, []string) error, flags func(*pflag.FlagSet)) *cobra.Command {

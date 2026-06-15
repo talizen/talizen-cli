@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"net/url"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -22,7 +23,20 @@ const (
 
 var version = "dev"
 
+func envAPIHost() (string, bool) {
+	v, ok := os.LookupEnv("TALIZEN_API_HOST")
+	if !ok {
+		return "", false
+	}
+	v = strings.TrimSpace(v)
+	return v, v != ""
+}
+
 func defaultAPIHost() string {
+	if v, ok := envAPIHost(); ok {
+		return v
+	}
+
 	if v := strings.TrimSpace(viper.GetString("api_host")); v != "" {
 		return v
 	}
