@@ -82,6 +82,49 @@ func TestRunProjectCreateRequiresName(t *testing.T) {
 	}
 }
 
+func TestRootHelpPrintsCurrentAPIHostFromEnv(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("TALIZEN_API_HOST", "https://creght.cn")
+
+	output := captureStdout(t, func() {
+		err := Run(context.Background(), []string{"-h"})
+		if err != nil {
+			t.Fatalf("Run: %v", err)
+		}
+	})
+
+	if !strings.Contains(output, "Current API host: https://creght.cn") {
+		t.Fatalf("output = %q", output)
+	}
+}
+
+func TestLoadConfigAllowsEnvAPIHostOverride(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("TALIZEN_API_HOST", "https://creght.cn")
+
+	cfgPath, err := configPath()
+	if err != nil {
+		t.Fatalf("configPath: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(cfgPath), 0o755); err != nil {
+		t.Fatalf("create config dir: %v", err)
+	}
+	if err := os.WriteFile(cfgPath, []byte(`{"api_host":"https://talizen.com","token":"test-token"}`), 0o600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	cfg, err := loadConfig()
+	if err != nil {
+		t.Fatalf("loadConfig: %v", err)
+	}
+	if cfg.APIHost != "https://creght.cn" {
+		t.Fatalf("APIHost = %q, want https://creght.cn", cfg.APIHost)
+	}
+	if cfg.Token != "test-token" {
+		t.Fatalf("Token = %q, want test-token", cfg.Token)
+	}
+}
+
 func captureStdout(t *testing.T, fn func()) string {
 	t.Helper()
 
